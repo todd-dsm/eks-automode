@@ -1,0 +1,34 @@
+terraform {
+  # https://github.com/hashicorp/terraform/releases
+  required_version = "~> ${providerVersTFM}"
+  required_providers {
+    # https://github.com/hashicorp/terraform-provider-aws/releases
+    aws = {
+      source  = "hashicorp/aws"
+      version = ">= ${providerVersAWS}"
+    }
+    # https://github.com/hashicorp/terraform-provider-kubernetes/releases
+    kubernetes = {
+      source  = "hashicorp/kubernetes"
+      version = ">= ${providerVersKubes}"
+    }
+    # https://github.com/hashicorp/terraform-provider-random/releases
+    random = {
+      source  = "hashicorp/random"
+      version = ">= ${providerVersRandom}"
+    }
+  }
+  backend "s3" {
+    use_lockfile = true
+    bucket       = "${state_bucket}"
+    key          = "${env_build}/${myComponent}-state"
+    region       = "${region}"
+    encrypt      = true
+  }
+}
+
+### The AWS Provider
+# https://registry.terraform.io/providers/hashicorp/aws/latest/docs
+provider "aws" {
+  region = "${region}"
+}

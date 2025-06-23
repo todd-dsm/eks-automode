@@ -1,0 +1,54 @@
+################################################################################
+# Module Variables: AWS LB Controller
+################################################################################
+variable "project" {
+  description = "Project name"
+  type        = string
+}
+
+variable "env_build" {
+  description = "Environment name (stage/prod)"
+  type        = string
+}
+
+variable "vpc_id" {
+  description = "VPC ID"
+  type        = string
+}
+
+variable "cluster_name" {
+  description = "EKS cluster name"
+  type        = string
+}
+
+variable "tags" {
+  description = "Tags to apply to all resources"
+  type        = map(string)
+  default     = {}
+}
+
+variable "oidc_provider_arn" {
+  description = "OIDC provider ARN"
+  type        = string
+}
+
+########################################################################################################################
+# Variables: ArgoCD
+########################################################################################################################
+variable "dns_zone" {
+  description = "DNS zone for ArgoCD LoadBalancer service"
+  type        = string
+}
+
+########################################################################################################################
+# Variables: Cilium
+########################################################################################################################
+variable "vpc_cidr" {
+  description = "VPC CIDR"
+  type        = string
+}
+
+variable "vpc_arn" {
+  description = "VPC ARN"
+  type        = string
+}

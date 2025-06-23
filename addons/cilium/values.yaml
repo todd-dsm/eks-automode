@@ -1,0 +1,185 @@
+# Cilium CNI Configuration for EKS
+# Optimized for AWS environment with observability and security features
+# Compatible with EKS cluster version 1.32 and Cilium v1.17.5
+
+# EKS-specific configuration
+eni:
+  enabled: true
+  updateEC2AdapterLimitViaAPI: true
+  awsReleaseExcessIPs: true
+  gcTags:
+    io.cilium.aws.delete-on-termination: "true"
+
+ipam:
+  mode: "eni"
+  operator:
+    clusterPoolIPv4PodCIDRList: ["10.0.0.0/8"]
+
+# AWS-specific settings
+aws:
+  enableIPv4Masquerade: true
+
+# Remove kube-proxy since Cilium will handle it
+kubeProxyReplacement: true
+
+# Service Account for IRSA (IAM Role for Service Accounts)
+serviceAccount:
+  create: true
+  name: "cilium"
+  annotations: {}  # Will be set via Terraform
+
+# Operator Service Account for IRSA
+operatorServiceAccount:
+  create: true
+  name: "cilium-operator"
+  annotations: {}  # Will be set via Terraform
+
+# Enable Hubble for observability
+hubble:
+  enabled: true
+  metrics:
+    enabled:
+      - dns
+      - drop
+      - tcp
+      - flow
+      - icmp
+      - http
+    serviceMonitor:
+      enabled: false  # Enable when Prometheus is deployed
+  relay:
+    enabled: true
+    rollOutPods: true
+  ui:
+    enabled: true
+    rollOutPods: true
+    ingress:
+      enabled: false  # Configure ingress separately if needed
+
+# Enable service mesh features
+envoyConfig:
+  enabled: true
+
+# Enable network policies
+policyEnforcementMode: "default"
+
+# Enable L7 proxy
+l7Proxy: true
+
+# Operator configuration
+operator:
+  rollOutPods: true
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+
+# Agent configuration
+resources:
+  limits:
+    cpu: 4000m
+    memory: 4Gi
+  requests:
+    cpu: 100m
+    memory: 512Mi
+
+# Security and monitoring
+monitor:
+  enabled: true
+
+# Enable Cilium Load Balancer IP Address Management (LB-IPAM)
+loadBalancer:
+  algorithm: "maglev"
+
+# Enable bandwidth manager for traffic shaping
+bandwidthManager:
+  enabled: true
+  bbr: true
+
+# Enable local redirect policy for better performance
+localRedirectPolicy: true
+
+# Enable socket-based load balancing
+socketLB:
+  enabled: true
+
+# Enable external workload support
+externalWorkloads:
+  enabled: false
+
+# Debug configuration (set to false for production)
+debug:
+  enabled: false
+
+# Log configuration
+logLevel: "info"
+
+# Rollout configuration
+rollOutCiliumPods: true
+
+# Image configuration (use default latest stable)
+image:
+  repository: "quay.io/cilium/cilium"
+  tag: "1.17.5"
+  pullPolicy: "IfNotPresent"
+
+# Node initialization
+nodeinit:
+  enabled: true
+
+# Clean up on uninstall
+cleanBpfState: false
+
+# Enable native routing mode for better performance on AWS
+routingMode: "native"
+autoDirectNodeRoutes: true
+endpointRoutes:
+  enabled: true
+
+# Security identity allocation mode
+identityAllocationMode: "crd"
+
+# Enable prometheus metrics
+prometheus:
+  enabled: true
+  port: 9090
+  serviceMonitor:
+    enabled: false  # Enable when Prometheus operator is available
+
+# Grafana annotations for automatic dashboard discovery
+annotations:
+  grafana.com/scrape: "true"
+  grafana.com/port: "9090"
+  grafana.com/path: "/metrics"
+
+# EKS-specific tolerations and affinity
+tolerations:
+  - operator: Exists
+
+# Enable cluster mesh (for multi-cluster scenarios)
+clustermesh:
+  useAPIServer: false
+
+# Session affinity configuration
+sessionAffinity: true
+
+# Well-known identities configuration
+wellKnownIdentities:
+  enabled: true
+
+# BPF masquerading configuration
+bpf:
+  masquerade: true
+  clockProbe: true
+
+# IPv6 configuration (disabled for now)
+ipv6:
+  enabled: false
+
+# Encryption (can be enabled for cluster-wide encryption)
+encryption:
+  enabled: false
+  type: ""  # Options: "wireguard", "ipsec"
