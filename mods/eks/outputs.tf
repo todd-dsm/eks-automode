@@ -21,6 +21,11 @@ output "oidc_provider_arn" {
   value       = aws_iam_openid_connect_provider.eks.arn
 }
 
+output "cert_issued" {
+  description = "Certificate issued by (not imported into) ACM"
+  value       = data.aws_acm_certificate.amazon_issued.status
+}
+
 ########################################################################################################################
 
 # output "cluster_version" {

@@ -14,6 +14,9 @@ When Considering Auto Mode
 | **Scaling Logic** | You configure and manage | AWS handles automatically |
 | **Infrastructure Control** | Full control over instances, networking, scaling | AWS abstracts infrastructure complexity |
 | **Compute Model** | EC2 instances you provision | Pay-per-pod serverless compute |
+| **add-ons** | EC2 instances you provision | [add-ons for EKS Auto Mode] |
+
+
 
 ## Required Addons
 
@@ -231,3 +234,4 @@ kubectl apply -f cluster-backup.yaml
 <!-- docs/refs -->
 [Load Balancing built-in]:https://docs.aws.amazon.com/eks/latest/userguide/auto-elb-example.html#_step_4_configure_load_balancing
 [NLB Example]:https://docs.aws.amazon.com/eks/latest/userguide/auto-configure-nlb.html
+[add-ons for EKS Auto Mode]:https://docs.aws.amazon.com/eks/latest/userguide/eks-add-ons.html#addon-consider-auto

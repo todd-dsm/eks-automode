@@ -34,6 +34,15 @@
 
 /*
   ------------------------------------------------------------------------------------------------------------------------
+  Outputs: ACM Certificates
+  ------------------------------------------------------------------------------------------------------------------------
+*/
+# output "cert_status" {
+#   value = module.eks.cert_issued
+# }
+
+/*
+  ------------------------------------------------------------------------------------------------------------------------
   Outputs: EKS Addons
   ------------------------------------------------------------------------------------------------------------------------
 */
@@ -94,15 +103,6 @@
 #   description = "Current list of IDs of public subnets"
 #   value       = module.network.public_subnets
 # }
-
-output "argocd_credentials" {
-  value     = module.eks_addons.argocd_credentials_file
-  sensitive = false
-}
-
-output "hubble_ui_access_instructions" {
-  value = module.eks_addons.hubble_ui_access_instructions
-}
 
 /*
   ------------------------------------------------------------------------------------------------------------------------

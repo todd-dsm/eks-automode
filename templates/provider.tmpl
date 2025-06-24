@@ -12,10 +12,25 @@ terraform {
       source  = "hashicorp/kubernetes"
       version = ">= ${providerVersKubes}"
     }
+    # https://github.com/hashicorp/terraform-provider-helm/releases
+    helm = {
+      source  = "hashicorp/helm"
+      version = ">= ${providerVersHelm}"
+    }
     # https://github.com/hashicorp/terraform-provider-random/releases
     random = {
       source  = "hashicorp/random"
       version = ">= ${providerVersRandom}"
+    }
+    # https://github.com/hashicorp/terraform-provider-null/releases
+    null = {
+      source  = "hashicorp/null"
+      version = ">= ${providerVersNull}"
+    }
+    # https://github.com/hashicorp/terraform-provider-tls/releases
+    tls = {
+      source  = "hashicorp/tls"
+      version = ">= ${providerVersTLS}"
     }
   }
   backend "s3" {

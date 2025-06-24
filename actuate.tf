@@ -6,7 +6,7 @@
   ------------------------------------------------------------------------------------------------------------------------
 */
 module "network" {
-  source    = "./modules/network"
+  source    = "./mods/network"
   project   = var.project
   env_build = var.env_build
   vpc_cidr  = var.vpc_cidr
@@ -19,11 +19,13 @@ module "network" {
   ------------------------------------------------------------------------------------------------------------------------
 */
 module "eks" {
-  source          = "./modules/eks"
+  source          = "./mods/eks"
   project         = var.project
   env_build       = var.env_build
   cluster_version = var.cluster_version
   subnet_ids      = module.network.private_subnet_ids
+  dns_zone        = var.dns_zone
+  zone_private    = var.zone_private
   depends_on      = [module.network]
 }
 /*
@@ -31,15 +33,15 @@ module "eks" {
   EKS Cluster: Helm Addons (Third-Party)
   ------------------------------------------------------------------------------------------------------------------------
 */
-module "eks_addons" {
-  source            = "./modules/addons"
-  project           = var.project
-  env_build         = var.env_build
-  cluster_name      = module.eks.cluster_name
-  oidc_provider_arn = module.eks.oidc_provider_arn
-  vpc_id            = module.network.vpc_id
-  vpc_arn           = module.network.vpc_arn
-  dns_zone          = var.dns_zone
-  vpc_cidr          = var.vpc_cidr
-  depends_on        = [module.eks]
-}
+# module "eks_addons" {
+#   source            = "./mods/addons"
+#   project           = var.project
+#   env_build         = var.env_build
+#   cluster_name      = module.eks.cluster_name
+#   oidc_provider_arn = module.eks.oidc_provider_arn
+#   vpc_id            = module.network.vpc_id
+#   vpc_arn           = module.network.vpc_arn
+#   dns_zone          = var.dns_zone
+#   vpc_cidr          = var.vpc_cidr
+#   depends_on        = [module.eks]
+# }

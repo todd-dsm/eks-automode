@@ -34,6 +34,16 @@ variable "tags" {
   default     = {}
 }
 
+variable "dns_zone" {
+  description = "DNS zone"
+  type        = string
+}
+
+variable "zone_private" {
+  description = "Private zone"
+  type        = bool
+}
+
 ################################################################################
 # Discovery: Data Sources
 ################################################################################
