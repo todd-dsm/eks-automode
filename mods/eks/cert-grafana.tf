@@ -5,10 +5,10 @@
 resource "aws_acm_certificate" "grafana" {
   domain_name = "grafana.${var.dns_zone}"
 
-  subject_alternative_names = [
-    "monitoring.${var.dns_zone}",
-    "dashboard.${var.dns_zone}",
-  ]
+  # subject_alternative_names = [
+  #   "monitoring.${var.dns_zone}",
+  #   "dashboard.${var.dns_zone}",
+  # ]
 
   validation_method = "DNS"
 

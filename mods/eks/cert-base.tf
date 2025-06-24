@@ -7,10 +7,10 @@
 resource "aws_acm_certificate" "environment" {
   domain_name = "${var.env_build}.${var.dns_zone}"
 
-  subject_alternative_names = [
-    "api.${var.env_build}.${var.dns_zone}",
-    "app.${var.env_build}.${var.dns_zone}",
-  ]
+  # subject_alternative_names = [
+  #   "api.${var.env_build}.${var.dns_zone}",
+  #   "app.${var.env_build}.${var.dns_zone}",
+  # ]
 
   validation_method = "DNS"
 

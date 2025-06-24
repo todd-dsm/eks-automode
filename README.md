@@ -2,7 +2,7 @@
 
 The Simplified Stack: EKS [Auto Mode]
 
-This is intended to be a test environment for learning new technologies quickly.
+This is intended to be a test environment for learning new technologies quickly; this is NOT for any sort of production use.
 
 There are some [noteable changes] with this version.
 
@@ -19,7 +19,7 @@ make apply
 make destroy
 ```
 
-Everythign just happens in about 20 minutes.
+The build happens in `~14` minutes.
 
 <!-- docs/refs -->
 

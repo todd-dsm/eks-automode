@@ -27,25 +27,12 @@ variable "tags" {
   default     = {}
 }
 
+variable "cluster_name" {
+  description = "EKS cluster name"
+  type        = string
+}
+
 # variable "vpc_id" {
 #   description = "VPC ID"
-#   type        = string
-# }
-
-# variable "cluster_name" {
-#   description = "EKS cluster name"
-#   type        = string
-# }
-
-########################################################################################################################
-# Variables: Cilium
-########################################################################################################################
-# variable "vpc_cidr" {
-#   description = "VPC CIDR"
-#   type        = string
-# }
-
-# variable "vpc_arn" {
-#   description = "VPC ARN"
 #   type        = string
 # }

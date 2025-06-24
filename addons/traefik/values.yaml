@@ -1,0 +1,308 @@
+# Traefik Helm Chart Values
+# Optimized for EKS Auto Mode with Gateway API support
+# Chart: https://github.com/traefik/traefik-helm-chart
+
+# Global configuration
+global:
+  # Disable startup API check for faster startup
+  checkNewVersion: false
+  sendAnonymousUsage: false
+
+# Image configuration
+image:
+  registry: docker.io
+  repository: traefik
+  tag: "v3.2"
+  pullPolicy: IfNotPresent
+
+# Deployment configuration
+deployment:
+  enabled: true
+  # Replicas set via Terraform variable
+  replicas: 2
+  podLabels:
+    app.kubernetes.io/component: controller
+  podAnnotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "8080"
+    prometheus.io/path: "/metrics"
+
+# Service configuration for AWS NLB
+service:
+  enabled: true
+  type: LoadBalancer
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+    service.beta.kubernetes.io/aws-load-balancer-backend-protocol: "tcp"
+    service.beta.kubernetes.io/aws-load-balancer-cross-zone-load-balancing-enabled: "true"
+    service.beta.kubernetes.io/aws-load-balancer-ssl-ports: "https"
+    # SSL cert ARN set via Terraform
+  spec:
+    loadBalancerSourceRanges:
+      - "0.0.0.0/0"
+
+# Ports configuration
+ports:
+  traefik:
+    port: 9000
+    expose:
+      default: false
+    exposedPort: 9000
+    protocol: TCP
+  web:
+    port: 8000
+    expose:
+      default: true
+    exposedPort: 80
+    protocol: TCP
+    redirectTo:
+      port: websecure
+      priority: 10
+  websecure:
+    port: 8443
+    expose:
+      default: true
+    exposedPort: 443
+    protocol: TCP
+    tls:
+      enabled: true
+      options: ""
+      certResolver: ""
+      domains: []
+  metrics:
+    port: 8080
+    expose:
+      default: false
+    exposedPort: 8080
+    protocol: TCP
+
+# TLS Options
+tlsOptions:
+  default:
+    sslStrategies:
+      - "tls.SniStrict"
+    minVersion: "VersionTLS12"
+    cipherSuites:
+      - "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384"
+      - "TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305"
+      - "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"
+
+# Provider configurations
+providers:
+  # Gateway API Provider (Primary)
+  kubernetesGateway:
+    enabled: true
+    # Enable experimental features for Gateway API
+    experimentalChannel: true
+    # Enable status updates on Gateway resources
+    statusUpdate:
+      enabled: true
+    # Throttle duration for status updates
+    throttleDuration: "5s"
+
+  # Kubernetes CRD Provider (Traditional Traefik resources)
+  kubernetesCRD:
+    enabled: true
+    allowCrossNamespace: true
+    allowExternalNameServices: true
+    # Watch all namespaces
+    namespaces: []
+
+  # Kubernetes Ingress Provider (Backward compatibility)
+  kubernetesIngress:
+    enabled: true
+    allowExternalNameServices: true
+    publishedService:
+      enabled: true
+    # Watch all namespaces
+    namespaces: []
+
+# Global Arguments
+globalArguments:
+  - "--global.checknewversion=false"
+  - "--global.sendanonymoususage=false"
+
+# Additional Arguments
+additionalArguments:
+  # Enable Gateway API provider
+  - "--providers.kubernetesgateway"
+  - "--providers.kubernetesgateway.experimentalchannel=true"
+  
+  # Logging
+  - "--log.level=INFO"
+  - "--accesslog=true"
+  - "--accesslog.fields.names.StartUTC=drop"
+  
+  # Metrics
+  - "--metrics.prometheus=true"
+  - "--metrics.prometheus.addEntryPointsLabels=true"
+  - "--metrics.prometheus.addServicesLabels=true"
+  - "--metrics.prometheus.addRoutersLabels=true"
+
+# Environment variables
+env:
+  - name: POD_NAME
+    valueFrom:
+      fieldRef:
+        fieldPath: metadata.name
+  - name: POD_NAMESPACE
+    valueFrom:
+      fieldRef:
+        fieldPath: metadata.namespace
+
+# Resources
+resources:
+  requests:
+    cpu: "100m"
+    memory: "50Mi"
+  limits:
+    cpu: "300m"
+    memory: "150Mi"
+
+# Security Context
+securityContext:
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: true
+  runAsGroup: 65532
+  runAsNonRoot: true
+  runAsUser: 65532
+
+podSecurityContext:
+  fsGroup: 65532
+  runAsGroup: 65532
+  runAsNonRoot: true
+  runAsUser: 65532
+
+# Service Account (IRSA annotation set via Terraform)
+serviceAccount:
+  create: true
+  name: "traefik"
+  annotations: {}
+
+# Node selection
+nodeSelector:
+  kubernetes.io/os: linux
+
+# Tolerations
+tolerations: []
+
+# Affinity rules for high availability
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values:
+                  - traefik
+          topologyKey: kubernetes.io/hostname
+
+# Health checks
+readinessProbe:
+  failureThreshold: 1
+  initialDelaySeconds: 2
+  periodSeconds: 10
+  successThreshold: 1
+  timeoutSeconds: 2
+
+livenessProbe:
+  failureThreshold: 3
+  initialDelaySeconds: 2
+  periodSeconds: 10
+  successThreshold: 1
+  timeoutSeconds: 2
+
+# API and Dashboard configuration
+api:
+  # Dashboard enabled/disabled via Terraform variable
+  dashboard: true
+  debug: false
+  insecure: false
+
+# Metrics configuration
+metrics:
+  prometheus:
+    enabled: true
+    addEntryPointsLabels: true
+    addRoutersLabels: true
+    addServicesLabels: true
+    buckets:
+      - 0.1
+      - 0.3
+      - 1.2
+      - 5.0
+    serviceMonitor:
+      enabled: false  # Enable when Prometheus operator is available
+
+# Logging configuration
+logs:
+  general:
+    level: INFO
+  access:
+    enabled: true
+
+# Pilot configuration (Traefik Hub)
+pilot:
+  enabled: false
+
+# Hub configuration
+hub:
+  enabled: false
+
+# Enterprise features (disabled)
+enterprise:
+  enabled: false
+
+# Tracing (optional - can be enabled later)
+tracing: {}
+
+# Additional volumes and volume mounts
+volumes: []
+volumeMounts: []
+
+# Horizontal Pod Autoscaler
+autoscaling:
+  enabled: false
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 60
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 70
+
+# Persistence (not needed for stateless operation)
+persistence:
+  enabled: false
+
+# RBAC
+rbac:
+  enabled: true
+  namespaced: false
+
+# Pod Disruption Budget
+podDisruptionBudget:
+  enabled: true
+  maxUnavailable: 1
+
+# Priority Class
+priorityClassName: ""
+
+# Init containers
+initContainers: []
+
+# Additional containers
+additionalContainers: []
