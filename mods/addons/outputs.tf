@@ -76,42 +76,42 @@ output "argocd_credentials_file" {
 ########################################################################################################################
 # Access Instructions
 ########################################################################################################################
-output "hubble_ui_access_instructions" {
-  description = "Instructions for accessing Hubble UI"
-  value       = <<-EOT
-    To access Hubble UI:
+# output "hubble_ui_access_instructions" {
+#   description = "Instructions for accessing Hubble UI"
+#   value       = <<-EOT
+#     To access Hubble UI:
 
-    1. Port forward to Hubble UI:
-       kubectl port-forward -n kube-system svc/hubble-ui 12000:80
+#     1. Port forward to Hubble UI:
+#        kubectl port-forward -n kube-system svc/hubble-ui 12000:80
 
-    2. Open browser to:
-       http://localhost:12000
+#     2. Open browser to:
+#        http://localhost:12000
 
-    3. Or create an ingress/LoadBalancer service for external access
-  EOT
-}
+#     3. Or create an ingress/LoadBalancer service for external access
+#   EOT
+# }
 
-output "cilium_cli_commands" {
-  description = "Useful Cilium CLI commands for monitoring"
-  value       = <<-EOT
-    Check Cilium status:
-      cilium status
+# output "cilium_cli_commands" {
+#   description = "Useful Cilium CLI commands for monitoring"
+#   value       = <<-EOT
+#     Check Cilium status:
+#       cilium status
 
-    Test connectivity:
-      cilium connectivity test
+#     Test connectivity:
+#       cilium connectivity test
 
-    View Hubble flows:
-      cilium hubble port-forward&
-      cilium hubble observe
+#     View Hubble flows:
+#       cilium hubble port-forward&
+#       cilium hubble observe
 
-    Monitor network policies:
-      cilium hubble observe --verdict DENIED
+#     Monitor network policies:
+#       cilium hubble observe --verdict DENIED
 
-    Check IRSA configuration:
-      kubectl get serviceaccount -n kube-system cilium -o yaml
-      kubectl get serviceaccount -n kube-system cilium-operator -o yaml
-  EOT
-}
+#     Check IRSA configuration:
+#       kubectl get serviceaccount -n kube-system cilium -o yaml
+#       kubectl get serviceaccount -n kube-system cilium-operator -o yaml
+#   EOT
+# }
 
 # ########################################################################################################################
 # # Monitoring and Metrics

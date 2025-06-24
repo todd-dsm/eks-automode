@@ -11,13 +11,13 @@ variable "env_build" {
   type        = string
 }
 
-variable "vpc_id" {
-  description = "VPC ID"
+variable "dns_zone" {
+  description = "DNS zone for ArgoCD LoadBalancer service"
   type        = string
 }
 
-variable "cluster_name" {
-  description = "EKS cluster name"
+variable "oidc_provider_arn" {
+  description = "OIDC provider ARN"
   type        = string
 }
 
@@ -27,28 +27,25 @@ variable "tags" {
   default     = {}
 }
 
-variable "oidc_provider_arn" {
-  description = "OIDC provider ARN"
-  type        = string
-}
+# variable "vpc_id" {
+#   description = "VPC ID"
+#   type        = string
+# }
 
-########################################################################################################################
-# Variables: ArgoCD
-########################################################################################################################
-variable "dns_zone" {
-  description = "DNS zone for ArgoCD LoadBalancer service"
-  type        = string
-}
+# variable "cluster_name" {
+#   description = "EKS cluster name"
+#   type        = string
+# }
 
 ########################################################################################################################
 # Variables: Cilium
 ########################################################################################################################
-variable "vpc_cidr" {
-  description = "VPC CIDR"
-  type        = string
-}
+# variable "vpc_cidr" {
+#   description = "VPC CIDR"
+#   type        = string
+# }
 
-variable "vpc_arn" {
-  description = "VPC ARN"
-  type        = string
-}
+# variable "vpc_arn" {
+#   description = "VPC ARN"
+#   type        = string
+# }

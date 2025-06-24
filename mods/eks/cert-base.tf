@@ -11,13 +11,13 @@ module "acm_environment" {
   source  = "terraform-aws-modules/acm/aws"
   version = "~> 6.0.0"
 
-  domain_name = "${var.env_build}.${var.dns_zone}"
-  zone_id     = data.aws_route53_zone.selected.zone_id
+  #domain_name = "${var.env_build}.${var.dns_zone}"
+  zone_id = data.aws_route53_zone.selected.zone_id
 
-  subject_alternative_names = [
-    "api.${var.env_build}.${var.dns_zone}",
-    "app.${var.env_build}.${var.dns_zone}",
-  ]
+  # subject_alternative_names = [
+  #   "api.${var.env_build}.${var.dns_zone}",
+  #   "app.${var.env_build}.${var.dns_zone}",
+  # ]
 
   wait_for_validation = true
   validation_method   = "DNS"
