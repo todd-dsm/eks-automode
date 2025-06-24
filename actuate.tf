@@ -26,6 +26,7 @@ module "eks" {
   subnet_ids      = module.network.private_subnet_ids
   dns_zone        = var.dns_zone
   zone_private    = var.zone_private
+  tags            = local.tags
   depends_on      = [module.network]
 }
 
@@ -34,12 +35,12 @@ module "eks" {
   EKS Cluster: Helm Addons (Third-Party)
   ------------------------------------------------------------------------------------------------------------------------
 */
-# module "eks_addons" {
-#   source            = "./mods/addons"
-#   project           = var.project
-#   env_build         = var.env_build
-#   dns_zone          = var.dns_zone
-#   oidc_provider_arn = module.eks.oidc_provider_arn
-#   tags              = local.tags
-#   depends_on        = [module.eks]
-# }
+module "eks_addons" {
+  source            = "./mods/addons"
+  project           = var.project
+  env_build         = var.env_build
+  dns_zone          = var.dns_zone
+  oidc_provider_arn = module.eks.oidc_provider_arn
+  tags              = local.tags
+  depends_on        = [module.eks]
+}
