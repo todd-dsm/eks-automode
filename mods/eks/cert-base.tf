@@ -1,26 +1,22 @@
 ########################################################################################################################
-# AWS Certificate Manager Route53 DNS validation
-# VER: https://github.com/terraform-aws-modules/terraform-aws-acm/releases
-# TFR: https://registry.terraform.io/modules/terraform-aws-modules/acm/aws/latest/examples/complete-dns-validation
-# DOC: https://docs.aws.amazon.com/acm/latest/userguide/dns-validation.html
-# EXs: https://github.com/terraform-aws-modules/terraform-aws-acm/tree/master/examples/complete-dns-validation
-# ######################################################################################################################
-# Environment-Specific Base Certificate
+# AWS Certificate Manager - Direct Implementation (Provider v6.0.0 Compatible)
+# Replaces the problematic ACM module with direct resources
 ########################################################################################################################
-module "acm_environment" {
-  source  = "terraform-aws-modules/acm/aws"
-  version = "~> 6.0.0"
 
-  #domain_name = "${var.env_build}.${var.dns_zone}"
-  zone_id = data.aws_route53_zone.selected.zone_id
+# Create ACM Certificate with DNS validation
+resource "aws_acm_certificate" "environment" {
+  domain_name = "${var.env_build}.${var.dns_zone}"
 
-  # subject_alternative_names = [
-  #   "api.${var.env_build}.${var.dns_zone}",
-  #   "app.${var.env_build}.${var.dns_zone}",
-  # ]
+  subject_alternative_names = [
+    "api.${var.env_build}.${var.dns_zone}",
+    "app.${var.env_build}.${var.dns_zone}",
+  ]
 
-  wait_for_validation = true
-  validation_method   = "DNS"
+  validation_method = "DNS"
+
+  lifecycle {
+    create_before_destroy = true
+  }
 
   tags = merge(var.tags, {
     Name        = "${var.project}-${var.env_build}-cert"
@@ -30,16 +26,67 @@ module "acm_environment" {
   })
 }
 
+# Create Route53 validation records
+resource "aws_route53_record" "cert_validation" {
+  for_each = {
+    for dvo in aws_acm_certificate.environment.domain_validation_options : dvo.domain_name => {
+      name   = dvo.resource_record_name
+      record = dvo.resource_record_value
+      type   = dvo.resource_record_type
+    }
+  }
+
+  allow_overwrite = true
+  name            = each.value.name
+  records         = [each.value.record]
+  ttl             = 60
+  type            = each.value.type
+  zone_id         = data.aws_route53_zone.selected.zone_id
+}
+
+# Wait for certificate validation
+resource "aws_acm_certificate_validation" "environment" {
+  certificate_arn         = aws_acm_certificate.environment.arn
+  validation_record_fqdns = [for record in aws_route53_record.cert_validation : record.fqdn]
+
+  timeouts {
+    create = "5m"
+  }
+}
+
 ########################################################################################################################
 # Route53 Zone Data Source for DNS validation
+########################################################################################################################
 data "aws_route53_zone" "selected" {
   name         = "${var.dns_zone}."
   private_zone = var.zone_private
 }
 
-# Find a certificate issued by (not imported into) ACM
+########################################################################################################################
+# Compatibility outputs (so other modules don't break)
+########################################################################################################################
+# Find existing certificates (for reference)
 data "aws_acm_certificate" "amazon_issued" {
   domain      = var.dns_zone
   types       = ["AMAZON_ISSUED"]
   most_recent = true
+
+  depends_on = [aws_acm_certificate_validation.environment]
+}
+
+# Output the validated certificate ARN (replaces module output)
+output "certificate_arn" {
+  description = "ARN of the validated certificate"
+  value       = aws_acm_certificate_validation.environment.certificate_arn
+}
+
+output "certificate_status" {
+  description = "Status of the certificate"
+  value       = aws_acm_certificate.environment.status
+}
+
+# Compatibility output for any references to module.acm_environment.certificate_arn
+locals {
+  # This allows other code to reference the certificate ARN
+  environment_certificate_arn = aws_acm_certificate_validation.environment.certificate_arn
 }
