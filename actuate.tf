@@ -13,9 +13,14 @@ module "network" {
   azs       = local.azs
   tags      = local.tags
 }
+
 /*
   ------------------------------------------------------------------------------------------------------------------------
   EKS Cluster: Fully Managed
+    * Core Addons:
+      * FSx CSI driver
+      * Mountpoint for S3 CSI driver
+      * Snapshot Controller (Builds in 15m20s)
   ------------------------------------------------------------------------------------------------------------------------
 */
 module "eks" {
@@ -29,18 +34,30 @@ module "eks" {
   tags            = local.tags
   depends_on      = [module.network]
 }
+
+/*
+  ------------------------------------------------------------------------------------------------------------------------
+  Readjustments
+   * Container Insights Cleanup: Remove CloudWatch Agent and Fluent Bit
+  ------------------------------------------------------------------------------------------------------------------------
+*/
+module "removals" {
+  source     = "./mods/cleanup"
+  depends_on = [module.eks]
+}
+
 /*
   ------------------------------------------------------------------------------------------------------------------------
   EKS Cluster: Helm Addons (Third-Party)
   ------------------------------------------------------------------------------------------------------------------------
 */
-# module "eks_addons" {
-#   source            = "./mods/addons"
-#   project           = var.project
-#   env_build         = var.env_build
-#   dns_zone          = var.dns_zone
-#   oidc_provider_arn = module.eks.oidc_provider_arn
-#   cluster_name      = module.eks.cluster_name
-#   tags              = local.tags
-#   depends_on        = [module.eks]
-# }
+module "eks_addons" {
+  source            = "./mods/addons"
+  project           = var.project
+  env_build         = var.env_build
+  dns_zone          = var.dns_zone
+  oidc_provider_arn = module.eks.oidc_provider_arn
+  cluster_name      = module.eks.cluster_name
+  tags              = local.tags
+  depends_on        = [module.removals]
+}
