@@ -4,23 +4,6 @@
 # DOCS: https://doc.traefik.io/traefik/
 # GATEWAY: https://doc.traefik.io/traefik/providers/kubernetes-gateway/
 ########################################################################################################################
-
-# Create dedicated namespace for Traefik
-resource "kubernetes_namespace" "traefik" {
-  metadata {
-    name = "traefik"
-
-    labels = {
-      name                                 = "traefik"
-      "app.kubernetes.io/name"             = "traefik"
-      "pod-security.kubernetes.io/enforce" = "baseline"
-      "pod-security.kubernetes.io/audit"   = "baseline"
-      "pod-security.kubernetes.io/warn"    = "baseline"
-    }
-  }
-}
-
-########################################################################################################################
 # Traefik Helm Release
 ########################################################################################################################
 resource "helm_release" "traefik" {
@@ -67,4 +50,19 @@ resource "helm_release" "traefik" {
     aws_acm_certificate_validation.traefik,
     null_resource.gateway_api_setup
   ]
+}
+
+# Create dedicated namespace for Traefik
+resource "kubernetes_namespace" "traefik" {
+  metadata {
+    name = "traefik"
+
+    labels = {
+      name                                 = "traefik"
+      "app.kubernetes.io/name"             = "traefik"
+      "pod-security.kubernetes.io/enforce" = "baseline"
+      "pod-security.kubernetes.io/audit"   = "baseline"
+      "pod-security.kubernetes.io/warn"    = "baseline"
+    }
+  }
 }
