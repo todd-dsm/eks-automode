@@ -1,5 +1,5 @@
 ########################################################################################################################
-# Traefik Gateway API Resources
+# Traefik Gateway API Resources - kubernetes_manifest works since CRDs exist
 # DOCS: https://doc.traefik.io/traefik/providers/kubernetes-gateway/
 ########################################################################################################################
 
@@ -22,7 +22,6 @@ resource "kubernetes_manifest" "traefik_gateway_class" {
   }
 
   depends_on = [
-    null_resource.gateway_api_setup,
     helm_release.traefik
   ]
 }
