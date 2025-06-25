@@ -58,6 +58,8 @@ module "eks_addons" {
   dns_zone          = var.dns_zone
   oidc_provider_arn = module.eks.oidc_provider_arn
   cluster_name      = module.eks.cluster_name
-  tags              = local.tags
-  depends_on        = [module.removals]
+  # traefik_certificate_domain = var.traefik_certificate_domain
+  # traefik_certificate_sans   = var.traefik_certificate_sans
+  tags       = local.tags
+  depends_on = [module.removals]
 }

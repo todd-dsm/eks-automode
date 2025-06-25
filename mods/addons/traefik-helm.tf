@@ -18,24 +18,60 @@ resource "helm_release" "traefik" {
     file("${path.root}/addons/traefik/values.yaml")
   ]
 
-  # Dynamic values for environment-specific overrides
+  # # Dynamic values for environment-specific overrides
+  # set = [
+  #   {
+  #     name  = "service.annotations.service\\.beta\\.kubernetes\\.io/aws-load-balancer-ssl-cert"
+  #     value = aws_acm_certificate_validation.traefik.certificate_arn
+  #   },
+  #   {
+  #     name  = "serviceAccount.annotations.eks\\.amazonaws\\.com/role-arn"
+  #     value = module.traefik_irsa.iam_role_arn
+  #   },
+  #   {
+  #     name  = "deployment.replicas"
+  #     value = var.traefik_replicas
+  #   },
+  #   {
+  #     name  = "api.dashboard"
+  #     value = var.enable_traefik_dashboard
+  #   }
+  # ]
+
   set = [
-    {
-      name  = "service.annotations.service\\.beta\\.kubernetes\\.io/aws-load-balancer-ssl-cert"
-      value = aws_acm_certificate_validation.traefik.certificate_arn
-    },
+    # IRSA annotations for Traefik service account
     {
       name  = "serviceAccount.annotations.eks\\.amazonaws\\.com/role-arn"
       value = module.traefik_irsa.iam_role_arn
     },
+
+    # Environment-specific replica count
     {
       name  = "deployment.replicas"
-      value = var.traefik_replicas
+      value = var.env_build == "prod" ? "3" : "2"
+    },
+
+    # NLB service configuration with ACM certificate
+    {
+      name  = "service.annotations.service\\.beta\\.kubernetes\\.io/aws-load-balancer-ssl-cert"
+      value = aws_acm_certificate_validation.traefik.certificate_arn
+    },
+
+    # Environment-specific resource limits
+    {
+      name  = "resources.limits.cpu"
+      value = var.env_build == "prod" ? "1000m" : "500m"
     },
     {
-      name  = "api.dashboard"
-      value = var.enable_traefik_dashboard
-    }
+      name  = "resources.limits.memory"
+      value = var.env_build == "prod" ? "1Gi" : "512Mi"
+    },
+
+    # Enable HPA for production
+    {
+      name  = "autoscaling.enabled"
+      value = var.env_build == "prod" ? "true" : "false"
+    },
   ]
 
   # Helm release configuration
@@ -47,8 +83,7 @@ resource "helm_release" "traefik" {
   depends_on = [
     kubernetes_namespace.traefik,
     module.traefik_irsa,
-    aws_acm_certificate_validation.traefik,
-    null_resource.gateway_api_setup
+    aws_acm_certificate_validation.traefik
   ]
 }
 

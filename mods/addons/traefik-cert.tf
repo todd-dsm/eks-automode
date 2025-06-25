@@ -58,3 +58,31 @@ resource "aws_acm_certificate_validation" "traefik" {
     create = "5m"
   }
 }
+
+########################################################################################################################
+# TLS Certificate Secret (from ACM certificate)
+########################################################################################################################
+resource "kubernetes_secret" "traefik_tls_cert" {
+  metadata {
+    name      = "traefik-tls-cert"
+    namespace = kubernetes_namespace.traefik.metadata[0].name
+    labels = {
+      "app.kubernetes.io/managed-by" = "terraform"
+      "app.kubernetes.io/name"       = "traefik"
+    }
+    annotations = {
+      # Reference to ACM certificate ARN for NLB
+      "service.beta.kubernetes.io/aws-load-balancer-ssl-cert" = aws_acm_certificate.traefik.arn
+    }
+  }
+
+  type = "kubernetes.io/tls"
+
+  # Placeholder certificate data - actual TLS termination happens at NLB with ACM
+  data = {
+    "tls.crt" = base64encode("# Certificate managed by AWS ACM")
+    "tls.key" = base64encode("# Private key managed by AWS ACM")
+  }
+
+  depends_on = [kubernetes_namespace.traefik]
+}

@@ -1,9 +1,7 @@
 ########################################################################################################################
-# Traefik Gateway API Resources - kubernetes_manifest works since CRDs exist
-# DOCS: https://doc.traefik.io/traefik/providers/kubernetes-gateway/
+# Traefik Gateway API Resources
 ########################################################################################################################
-
-# Create GatewayClass for Traefik
+# Gateway Class for Traefik
 resource "kubernetes_manifest" "traefik_gateway_class" {
   manifest = {
     apiVersion = "gateway.networking.k8s.io/v1"
@@ -12,7 +10,7 @@ resource "kubernetes_manifest" "traefik_gateway_class" {
       name = "traefik"
       labels = {
         "app.kubernetes.io/managed-by" = "terraform"
-        "app.kubernetes.io/component"  = "gateway-class"
+        "app.kubernetes.io/name"       = "traefik"
       }
     }
     spec = {
@@ -21,13 +19,11 @@ resource "kubernetes_manifest" "traefik_gateway_class" {
     }
   }
 
-  depends_on = [
-    helm_release.traefik
-  ]
+  depends_on = [helm_release.traefik]
 }
 
 ########################################################################################################################
-# Main Gateway Resource
+# Default Gateway for Traefik
 ########################################################################################################################
 resource "kubernetes_manifest" "traefik_gateway" {
   manifest = {
@@ -38,11 +34,11 @@ resource "kubernetes_manifest" "traefik_gateway" {
       namespace = kubernetes_namespace.traefik.metadata[0].name
       labels = {
         "app.kubernetes.io/managed-by" = "terraform"
-        "app.kubernetes.io/component"  = "gateway"
+        "app.kubernetes.io/name"       = "traefik"
       }
     }
     spec = {
-      gatewayClassName = kubernetes_manifest.traefik_gateway_class.manifest.metadata.name
+      gatewayClassName = "traefik"
       listeners = [
         {
           name     = "http"
@@ -57,6 +53,12 @@ resource "kubernetes_manifest" "traefik_gateway" {
           hostname = "*.${var.dns_zone}"
           tls = {
             mode = "Terminate"
+            certificateRefs = [
+              {
+                name = "traefik-tls-cert"
+                kind = "Secret"
+              }
+            ]
           }
         }
       ]
@@ -64,16 +66,15 @@ resource "kubernetes_manifest" "traefik_gateway" {
   }
 
   depends_on = [
-    kubernetes_manifest.traefik_gateway_class
+    kubernetes_manifest.traefik_gateway_class,
+    kubernetes_secret.traefik_tls_cert
   ]
 }
 
 ########################################################################################################################
-# HTTPRoute for Traefik Dashboard (if enabled)
+# Traefik Dashboard HTTPRoute
 ########################################################################################################################
 resource "kubernetes_manifest" "traefik_dashboard_route" {
-  count = var.enable_traefik_dashboard ? 1 : 0
-
   manifest = {
     apiVersion = "gateway.networking.k8s.io/v1"
     kind       = "HTTPRoute"
@@ -82,18 +83,18 @@ resource "kubernetes_manifest" "traefik_dashboard_route" {
       namespace = kubernetes_namespace.traefik.metadata[0].name
       labels = {
         "app.kubernetes.io/managed-by" = "terraform"
-        "app.kubernetes.io/component"  = "dashboard-route"
+        "app.kubernetes.io/name"       = "traefik"
       }
     }
     spec = {
       parentRefs = [
         {
-          name = kubernetes_manifest.traefik_gateway.manifest.metadata.name
+          name      = "traefik-gateway"
+          namespace = kubernetes_namespace.traefik.metadata[0].name
         }
       ]
       hostnames = [
-        aws_acm_certificate.traefik.domain_name,
-        "dashboard.${var.env_build}.${var.dns_zone}"
+        "traefik.${var.dns_zone}"
       ]
       rules = [
         {
@@ -118,6 +119,6 @@ resource "kubernetes_manifest" "traefik_dashboard_route" {
 
   depends_on = [
     kubernetes_manifest.traefik_gateway,
-    aws_acm_certificate_validation.traefik
+    helm_release.traefik
   ]
 }

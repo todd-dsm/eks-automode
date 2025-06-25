@@ -20,3 +20,19 @@ variable "traefik_replicas" {
 #   type        = string
 #   default     = ""
 # }
+
+# variable "traefik_certificate_domain" {
+#   description = "Primary domain of the Traefik certificate"
+#   type        = string
+# }
+
+# variable "traefik_certificate_sans" {
+#   description = "Subject alternative names for Traefik certificate"
+#   type        = list(string)
+# }
+
+variable "gateway_api_crds_ready" {
+  description = "Dependency to ensure Gateway API CRDs are installed"
+  type        = any
+  default     = null
+}
