@@ -60,21 +60,9 @@ securityContext:
   readOnlyRootFilesystem: true
 
 ########################################################################################################################
-# Service Account Configuration
-########################################################################################################################
-serviceAccount:
-  create: true
-  name: "traefik"
-  annotations: {}  # Set via Terraform for IRSA
-
-########################################################################################################################
 # RBAC Configuration
 ########################################################################################################################
 rbac:
-  enabled: true
-  
-# Cluster Role permissions for Gateway API
-clusterRole:
   enabled: true
 
 ########################################################################################################################
@@ -87,10 +75,10 @@ additionalArguments:
   - "--providers.kubernetesgateway.experimentalChannel=true"
   - "--providers.kubernetesgateway.throttleDuration=2s"
   
-  # Certificate Resolvers
-  - "--certificatesresolvers.letsencrypt.acme.tlschallenge=true"
-  - "--certificatesresolvers.letsencrypt.acme.caserver=https://acme-v02.api.letsencrypt.org/directory"
-  - "--certificatesresolvers.letsencrypt.acme.storage=/data/acme.json"
+  # Certificate Resolvers (commented out - using ACM instead)
+  # - "--certificatesresolvers.letsencrypt.acme.tlschallenge=true"
+  # - "--certificatesresolvers.letsencrypt.acme.caserver=https://acme-v02.api.letsencrypt.org/directory"
+  # - "--certificatesresolvers.letsencrypt.acme.storage=/data/acme.json"
   
   # Metrics and monitoring
   - "--metrics.prometheus=true"
@@ -100,6 +88,11 @@ additionalArguments:
   # API and dashboard
   - "--api.dashboard=true"
   - "--api.insecure=false"
+  
+  # Global HTTP to HTTPS redirect
+  - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
+  - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
+  - "--entrypoints.web.http.redirections.entrypoint.permanent=true"
   
   # Health checks
   - "--ping=true"
@@ -123,10 +116,7 @@ ports:
     exposedPort: 80
     protocol: TCP
     healthchecksPort: 8080
-    redirectTo:
-      port: websecure
-      scheme: https
-      permanent: true
+    # HTTP to HTTPS redirect handled via additionalArguments
   
   websecure:
     port: 8443
@@ -174,16 +164,10 @@ service:
   loadBalancerHealthCheckGracePeriodSeconds: 60
 
 ########################################################################################################################
-# Persistence Configuration
+# Persistence Configuration (Disabled - using ACM certificates)
 ########################################################################################################################
 persistence:
-  enabled: true
-  name: data
-  accessMode: ReadWriteOnce
-  size: 128Mi
-  storageClass: "gp2"
-  path: /data
-  annotations: {}
+  enabled: false
 
 ########################################################################################################################
 # Resource Configuration
@@ -249,21 +233,8 @@ metrics:
     addEntryPointsLabels: true
     addServicesLabels: true
     addRoutersLabels: true
-    buckets:
-      - 0.1
-      - 0.3
-      - 1.2
-      - 5.0
+    buckets: "0.1,0.3,1.2,5.0"
     disableAPICheck: false
-
-########################################################################################################################
-# Tracing Configuration (Optional)
-########################################################################################################################
-tracing:
-  jaeger:
-    enabled: false
-  otlp:
-    enabled: false
 
 ########################################################################################################################
 # TLS Configuration
@@ -311,35 +282,26 @@ env:
         fieldPath: metadata.namespace
 
 ########################################################################################################################
-# Additional Volumes and Volume Mounts
+# Additional Volumes and Volume Mounts (used for ACM certificates; Disabled)
 ########################################################################################################################
-volumes:
-  - name: tmp
-    emptyDir: {}
-  - name: plugins-storage
-    emptyDir: {}
+# volumes:
+#   - name: tmp
+#     emptyDir: {}
+#   - name: plugins-storage
+#     emptyDir: {}
 
-volumeMounts:
-  - name: tmp
-    mountPath: /tmp
-  - name: plugins-storage
-    mountPath: /plugins-storage
+# volumeMounts:
+#   - name: tmp
+#     mountPath: /tmp
+#   - name: plugins-storage
+#     mountPath: /plugins-storage
 
 ########################################################################################################################
 # Experimental Features
 ########################################################################################################################
 experimental:
-  v3:
-    enabled: false
-  plugins:
-    enabled: false
   kubernetesGateway:
     enabled: true
-    # Certificate management
-    certificateGeneration:
-      enabled: true
-      resolvers:
-        - letsencrypt
 
 ########################################################################################################################
 # Hub Configuration (Traefik Hub integration)

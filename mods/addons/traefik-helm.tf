@@ -36,10 +36,10 @@ resource "helm_release" "traefik" {
     ########################################################################################################################
     # IRSA annotations for Traefik service account
     ########################################################################################################################
-    {
-      name  = "serviceAccount.annotations.eks\\.amazonaws\\.com/role-arn"
-      value = aws_acm_certificate.traefik.arn
-    },
+    # {
+    #   name  = "serviceAccount.annotations.eks\\.amazonaws\\.com/role-arn"
+    #   value = aws_acm_certificate.traefik.arn
+    # },
   ]
 
   # Helm release configuration
@@ -60,8 +60,35 @@ resource "helm_release" "traefik" {
     prevent_destroy = false
   }
 }
+########################################################################################################################
+# Traefik Service Account (Terraform-managed)
+########################################################################################################################
+resource "kubernetes_service_account" "traefik" {
+  metadata {
+    name      = "traefik"
+    namespace = kubernetes_namespace.traefik.metadata[0].name
+    annotations = {
+      "eks.amazonaws.com/role-arn"     = module.traefik_irsa.iam_role_arn
+      "meta.helm.sh/release-name"      = "traefik"
+      "meta.helm.sh/release-namespace" = kubernetes_namespace.traefik.metadata[0].name
+    }
+    labels = {
+      "app.kubernetes.io/name"       = "traefik"
+      "app.kubernetes.io/instance"   = "traefik"
+      "app.kubernetes.io/component"  = "controller"
+      "app.kubernetes.io/managed-by" = "Helm"
+    }
+  }
 
-# Create dedicated namespace for Traefik
+  depends_on = [
+    kubernetes_namespace.traefik,
+    module.traefik_irsa
+  ]
+}
+
+########################################################################################################################
+# Traefik Namespace
+########################################################################################################################
 resource "kubernetes_namespace" "traefik" {
   metadata {
     name = "traefik"
@@ -69,9 +96,8 @@ resource "kubernetes_namespace" "traefik" {
     labels = {
       name                                 = "traefik"
       "app.kubernetes.io/name"             = "traefik"
-      "pod-security.kubernetes.io/enforce" = "baseline"
-      "pod-security.kubernetes.io/audit"   = "baseline"
-      "pod-security.kubernetes.io/warn"    = "baseline"
+      "app.kubernetes.io/instance"         = "traefik"
+      "pod-security.kubernetes.io/enforce" = "privileged"
     }
   }
 }
