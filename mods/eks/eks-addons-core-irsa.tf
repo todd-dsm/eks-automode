@@ -6,7 +6,7 @@
 # DOC: https://aws.amazon.com/blogs/opensource/introducing-fine-grained-iam-roles-service-accounts/
 # EXs: https://github.com/terraform-aws-modules/terraform-aws-iam/blob/7825816ce6cb6a2838c0978b629868d24358f5aa/README.md
 # ######################################################################################################################
-# # IRSA for FSx CSI Driver
+# # IRSA for FSx CSI Driver - builds in 25s
 # ########################################################################################################################
 module "fsx_csi_driver_irsa" {
   source  = "terraform-aws-modules/iam/aws//modules/iam-role-for-service-accounts-eks"
