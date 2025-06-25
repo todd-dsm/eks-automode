@@ -1,27 +1,51 @@
+########################################################################################################################
+# IRSAs to Support EKS Addons
+# VER: https://github.com/terraform-aws-modules/terraform-aws-iam/releases
+# TFR: https://registry.terraform.io/modules/terraform-aws-modules/iam/aws/latest/examples/iam-role-for-service-accounts-eks
+# SPT: https://github.com/terraform-aws-modules/terraform-aws-iam/tree/master/examples/iam-role-for-service-accounts-eks
+# DOC: https://aws.amazon.com/blogs/opensource/introducing-fine-grained-iam-roles-service-accounts/
+# EXs: https://github.com/terraform-aws-modules/terraform-aws-iam/blob/7825816ce6cb6a2838c0978b629868d24358f5aa/README.md
+# ######################################################################################################################
+# Snapshot Controller IRSA
+module "snapshot_controller_irsa" {
+  source  = "terraform-aws-modules/iam/aws//modules/iam-role-for-service-accounts-eks"
+  version = "~> 5.58.0"
+
+  role_name_prefix = "${var.project}-snapshot-controller-"
+
+  oidc_providers = {
+    main = {
+      provider_arn               = aws_iam_openid_connect_provider.eks.arn
+      namespace_service_accounts = ["kube-system:snapshot-controller"]
+    }
+  }
+
+  tags = var.tags
+}
+
 # ########################################################################################################################
-# # IRSAs to Support EKS Addons
-# # VER: https://github.com/terraform-aws-modules/terraform-aws-iam/releases
-# # TFR: https://registry.terraform.io/modules/terraform-aws-modules/iam/aws/latest/examples/iam-role-for-service-accounts-eks
-# # SPT: https://github.com/terraform-aws-modules/terraform-aws-iam/tree/master/examples/iam-role-for-service-accounts-eks
-# # DOC: https://aws.amazon.com/blogs/opensource/introducing-fine-grained-iam-roles-service-accounts/
-# # EXs: https://github.com/terraform-aws-modules/terraform-aws-iam/blob/7825816ce6cb6a2838c0978b629868d24358f5aa/README.md
-# # ######################################################################################################################
-# # Snapshot Controller IRSA
-# module "snapshot_controller_irsa" {
-#   source  = "terraform-aws-modules/iam/aws//modules/iam-role-for-service-accounts-eks"
-#   version = "~> 5.58.0"
+# # IRSA for FSx CSI Driver - With CORRECT service account name
+# ########################################################################################################################
+module "fsx_csi_driver_irsa" {
+  source  = "terraform-aws-modules/iam/aws//modules/iam-role-for-service-accounts-eks"
+  version = "~> 5.58.0"
 
-#   role_name_prefix = "${var.project}-snapshot-controller-"
+  role_name_prefix = "${var.project}-fsx-csi-driver-"
 
-#   oidc_providers = {
-#     main = {
-#       provider_arn               = aws_iam_openid_connect_provider.eks.arn
-#       namespace_service_accounts = ["kube-system:snapshot-controller"]
-#     }
-#   }
+  # Use AWS managed policy for FSx access
+  role_policy_arns = {
+    fsx_policy = "arn:aws:iam::aws:policy/AmazonFSxFullAccess"
+  }
 
-#   tags = var.tags
-# }
+  oidc_providers = {
+    main = {
+      provider_arn               = aws_iam_openid_connect_provider.eks.arn
+      namespace_service_accounts = ["kube-system:fsx-csi-controller-sa"]
+    }
+  }
+
+  tags = var.tags
+}
 
 # ########################################################################################################################
 # # IRSA for Mountpoint S3 CSI Driver - With CORRECT service account name
