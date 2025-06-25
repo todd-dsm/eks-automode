@@ -46,20 +46,15 @@
   Outputs: EKS Addons
   ------------------------------------------------------------------------------------------------------------------------
 */
-# output "snapshot_controller_version" {
-#   description = "Version of the snapshot-controller addon"
-#   value       = module.eks.snapshot_controller_version
-# }
-
 # output "mountpoint_for_s3_csi_driver_version" {
 #   description = "Version of the mountpoint-for-s3-csi-driver addon"
 #   value       = module.eks.mountpoint_for_s3_csi_driver_version
 # }
 
-output "fsx_csi_driver_version" {
-  description = "Version of the fsx-csi-driver addon"
-  value       = module.eks.fsx_csi_driver_version
-}
+# output "fsx_csi_driver_version" {
+#   description = "Version of the fsx-csi-driver addon"
+#   value       = module.eks.fsx_csi_driver_version
+# }
 
 # output "vpc_cni_irsa_arn" {
 #   value = module.eks.vpc_cni_irsa_arn

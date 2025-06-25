@@ -6,25 +6,7 @@
 # DOC: https://aws.amazon.com/blogs/opensource/introducing-fine-grained-iam-roles-service-accounts/
 # EXs: https://github.com/terraform-aws-modules/terraform-aws-iam/blob/7825816ce6cb6a2838c0978b629868d24358f5aa/README.md
 # ######################################################################################################################
-# Snapshot Controller IRSA
-module "snapshot_controller_irsa" {
-  source  = "terraform-aws-modules/iam/aws//modules/iam-role-for-service-accounts-eks"
-  version = "~> 5.58.0"
-
-  role_name_prefix = "${var.project}-snapshot-controller-"
-
-  oidc_providers = {
-    main = {
-      provider_arn               = aws_iam_openid_connect_provider.eks.arn
-      namespace_service_accounts = ["kube-system:snapshot-controller"]
-    }
-  }
-
-  tags = var.tags
-}
-
-# ########################################################################################################################
-# # IRSA for FSx CSI Driver - With CORRECT service account name
+# # IRSA for FSx CSI Driver
 # ########################################################################################################################
 module "fsx_csi_driver_irsa" {
   source  = "terraform-aws-modules/iam/aws//modules/iam-role-for-service-accounts-eks"
@@ -48,7 +30,7 @@ module "fsx_csi_driver_irsa" {
 }
 
 # ########################################################################################################################
-# # IRSA for Mountpoint S3 CSI Driver - With CORRECT service account name
+# # IRSA for Mountpoint S3 CSI Driver
 # ########################################################################################################################
 module "mountpoint_for_s3_csi_driver_irsa" {
   source  = "terraform-aws-modules/iam/aws//modules/iam-role-for-service-accounts-eks"
@@ -107,41 +89,23 @@ resource "aws_iam_policy" "s3_csi_driver_policy" {
 }
 
 
-# # FSx CSI driver
-# module "fsx_csi_driver_irsa" {
-#   source  = "terraform-aws-modules/iam/aws//modules/iam-role-for-service-accounts-eks"
-#   version = "~> 5.58.0"
+#######################################################################################################################
+# These add-ons are included in the EKS Auto Mode by default
+# VPC CNI plugin
+# CoreDNS
+# kube-proxy
+# EBS storage capability (not the full EBS CSI driver addon)
+# AWS Load Balancer Controller
+# Karpenter for node management
 
-#   role_name_prefix = "${var.project}-fsx-csi-driver-"
-
-#   oidc_providers = {
-#     main = {
-#       provider_arn               = aws_iam_openid_connect_provider.eks.arn
-#       namespace_service_accounts = ["kube-system:fsx-csi-driver"]
-#     }
-#   }
-
-#   tags = var.tags
-# }
-
-# #######################################################################################################################
-# # These add-ons are included in the EKS Auto Mode by default
-# # VPC CNI plugin
-# # CoreDNS
-# # kube-proxy
-# # EBS storage capability (not the full EBS CSI driver addon)
-# # AWS Load Balancer Controller
-# # Karpenter for node management
-
-# # Not Included & Managed:
-# # Any app-specific add-ons
-# # AWS EFS CSI driver
-# # Observability Stack Components
-# #  - AWS Distro for OpenTelemetry (ADOT)
-# #  - AWS X-Ray
-# #  - AWS CloudWatch Container Insights
-# #  - AWS CloudWatch Logs
-# #  - AWS CloudWatch Metrics
-# #  - AWS CloudWatch Events
-# #  - AWS CloudWatch Alarms
-
+# Not Included & Managed:
+# Any app-specific add-ons
+# AWS EFS CSI driver
+# Observability Stack Components
+#  - AWS Distro for OpenTelemetry (ADOT)
+#  - AWS X-Ray
+#  - AWS CloudWatch Container Insights
+#  - AWS CloudWatch Logs
+#  - AWS CloudWatch Metrics
+#  - AWS CloudWatch Events
+#  - AWS CloudWatch Alarms
