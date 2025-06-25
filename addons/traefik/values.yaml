@@ -1,131 +1,251 @@
-# Traefik Configuration for EKS with Gateway API
-# Optimized for AWS environment with NLB and ACM certificate integration
-# Compatible with EKS cluster version 1.32 and Traefik v3.x
+# Traefik Configuration for Kubernetes Gateway API
+# Optimized for AWS EKS with NLB integration
+# Compatible with EKS cluster version 1.32 and Traefik v3.2
 
-# Global configuration
+########################################################################################################################
+# Global Configuration
+########################################################################################################################
 global:
-  checkNewVersion: true
-  sendAnonymousUsage: true
+  # Disable sending anonymous usage statistics
+  sendAnonymousUsage: false
 
-# Deployment configuration (replicas set via Terraform)
+########################################################################################################################
+# Image Configuration
+########################################################################################################################
+image:
+  # Use official Traefik image
+  registry: docker.io
+  repository: traefik
+  tag: "v3.4.1"
+  pullPolicy: IfNotPresent
+
+########################################################################################################################
+# Deployment Configuration
+########################################################################################################################
 deployment:
   enabled: true
   kind: Deployment
+  replicas: 1
+  minReadySeconds: 10
   
-  # Resource configuration
-  resources:
-    requests:
-      cpu: 100m
-      memory: 128Mi
-    # limits set via Terraform based on environment
+  # Pod disruption budget for high availability
+  podDisruptionBudget:
+    enabled: false
+    maxUnavailable: 1
 
-# Service Account for IRSA (will be annotated via Terraform)
-serviceAccount:
-  create: true
-  name: "traefik"
-  annotations: {}  # Will be set via Terraform
+  # Rolling update strategy
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
 
-# Pod Security Context
+########################################################################################################################
+# Pod Configuration
+########################################################################################################################
+# Security context for enhanced security
 podSecurityContext:
-  fsGroup: 65532
-  runAsGroup: 65532
   runAsNonRoot: true
   runAsUser: 65532
+  runAsGroup: 65532
+  fsGroup: 65532
 
-# Container Security Context
 securityContext:
   allowPrivilegeEscalation: false
   capabilities:
-    drop: ["ALL"]
+    drop:
+      - ALL
+    add:
+      - NET_BIND_SERVICE
   readOnlyRootFilesystem: true
 
-# Entry Points Configuration
+########################################################################################################################
+# Service Account Configuration
+########################################################################################################################
+serviceAccount:
+  create: true
+  name: "traefik"
+  annotations: {}  # Set via Terraform for IRSA
+
+########################################################################################################################
+# RBAC Configuration
+########################################################################################################################
+rbac:
+  enabled: true
+  
+# Cluster Role permissions for Gateway API
+clusterRole:
+  enabled: true
+
+########################################################################################################################
+# Traefik Configuration
+########################################################################################################################
+# Static configuration
+additionalArguments:
+  # Gateway API Provider Configuration
+  - "--providers.kubernetesgateway"
+  - "--providers.kubernetesgateway.experimentalChannel=true"
+  - "--providers.kubernetesgateway.throttleDuration=2s"
+  
+  # Certificate Resolvers
+  - "--certificatesresolvers.letsencrypt.acme.tlschallenge=true"
+  - "--certificatesresolvers.letsencrypt.acme.caserver=https://acme-v02.api.letsencrypt.org/directory"
+  - "--certificatesresolvers.letsencrypt.acme.storage=/data/acme.json"
+  
+  # Metrics and monitoring
+  - "--metrics.prometheus=true"
+  - "--metrics.prometheus.buckets=0.1,0.3,1.2,5.0"
+  - "--entrypoints.metrics.address=:8080"
+  
+  # API and dashboard
+  - "--api.dashboard=true"
+  - "--api.insecure=false"
+  
+  # Health checks
+  - "--ping=true"
+  - "--ping.entrypoint=traefik"
+
+########################################################################################################################
+# Ports Configuration
+########################################################################################################################
 ports:
-  # Web (HTTP) - redirects to HTTPS
-  web:
-    port: 8080
+  traefik:
+    port: 9000
+    expose:
+      default: false
+    exposedPort: 9000
     protocol: TCP
-    expose: true
+  
+  web:
+    port: 8000
+    expose:
+      default: true
     exposedPort: 80
+    protocol: TCP
+    healthchecksPort: 8080
     redirectTo:
       port: websecure
       scheme: https
       permanent: true
   
-  # Web Secure (HTTPS)
   websecure:
     port: 8443
-    protocol: TCP
-    expose: true
+    expose:
+      default: true
     exposedPort: 443
+    protocol: TCP
+    healthchecksPort: 8080
     tls:
       enabled: true
+      options: ""
+      certResolver: "letsencrypt"
   
-  # Traefik Dashboard
-  traefik:
-    port: 9000
+  metrics:
+    port: 8080
+    expose:
+      default: false
+    exposedPort: 8080
     protocol: TCP
-    expose: false
 
-# Service Configuration - Use NodePort for NLB
+########################################################################################################################
+# Service Configuration for NLB
+########################################################################################################################
 service:
   enabled: true
-  type: NodePort
+  single: true
+  type: LoadBalancer
+  
+  # NLB-specific annotations
   annotations:
-    # NLB Configuration
     service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
     service.beta.kubernetes.io/aws-load-balancer-scheme: "internet-facing"
     service.beta.kubernetes.io/aws-load-balancer-cross-zone-load-balancing-enabled: "true"
     service.beta.kubernetes.io/aws-load-balancer-backend-protocol: "tcp"
-    
-    # SSL Configuration (certificate ARN set via Terraform)
-    service.beta.kubernetes.io/aws-load-balancer-ssl-ports: "443"
-    service.beta.kubernetes.io/aws-load-balancer-ssl-negotiation-policy: "ELBSecurityPolicy-TLS13-1-2-2021-06"
-    
-    # Health check configuration
-    service.beta.kubernetes.io/aws-load-balancer-healthcheck-protocol: "tcp"
-    service.beta.kubernetes.io/aws-load-balancer-healthcheck-port: "8080"
-    
-    # Additional NLB settings
-    service.beta.kubernetes.io/aws-load-balancer-nlb-target-type: "instance"
-    service.beta.kubernetes.io/aws-load-balancer-manage-backend-security-group-rules: "true"
-
-# API Configuration - Enable Gateway API provider
-providers:
-  kubernetesCRD:
-    enabled: true
-    allowCrossNamespace: true
-    allowExternalNameServices: true
   
-  kubernetesGateway:
-    enabled: true
-    allowCrossNamespace: true
-    allowExternalNameServices: true
+  # Service labels
+  labels: {}
+  
+  # Load balancer configuration
+  spec:
+    externalTrafficPolicy: Local
+    loadBalancerSourceRanges: []
+  
+  # Health check configuration
+  loadBalancerHealthCheckGracePeriodSeconds: 60
 
-# Enable Gateway API support
-gatewayAPI:
+########################################################################################################################
+# Persistence Configuration
+########################################################################################################################
+persistence:
   enabled: true
+  name: data
+  accessMode: ReadWriteOnce
+  size: 128Mi
+  storageClass: "gp2"
+  path: /data
+  annotations: {}
 
+########################################################################################################################
+# Resource Configuration
+########################################################################################################################
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 256Mi
+
+########################################################################################################################
+# Autoscaling Configuration
+########################################################################################################################
+autoscaling:
+  enabled: false  # Disabled in favor of fixed replicas for testing
+  minReplicas: 1
+  maxReplicas: 3
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+
+########################################################################################################################
+# Health Checks Configuration
+########################################################################################################################
+readinessProbe:
+  failureThreshold: 1
+  initialDelaySeconds: 2
+  periodSeconds: 10
+  successThreshold: 1
+  timeoutSeconds: 2
+
+livenessProbe:
+  failureThreshold: 3
+  initialDelaySeconds: 2
+  periodSeconds: 10
+  successThreshold: 1
+  timeoutSeconds: 2
+
+########################################################################################################################
 # Logs Configuration
+########################################################################################################################
 logs:
   general:
-    level: INFO
-    format: json
+    level: DEBUG
+    filePath: ""
   access:
     enabled: true
+    filePath: ""
     format: json
-    fields:
-      general:
-        defaultmode: keep
-        names:
-          StartUTC: drop
-      headers:
-        defaultmode: drop
+    bufferingSize: 100
 
+########################################################################################################################
 # Metrics Configuration
+########################################################################################################################
 metrics:
   prometheus:
-    enabled: true
     addEntryPointsLabels: true
     addServicesLabels: true
     addRoutersLabels: true
@@ -134,55 +254,52 @@ metrics:
       - 0.3
       - 1.2
       - 5.0
-  
-  # ServiceMonitor for Prometheus Operator
-  serviceMonitor:
-    enabled: false  # Enable when Prometheus is deployed
-    interval: 30s
+    disableAPICheck: false
 
-# Dashboard Configuration
-api:
-  enabled: true
-  dashboard: true
-  debug: false
-  insecure: false  # Use HTTPS for dashboard
-
-# Disable ping service (use health endpoint instead)
-ping:
-  enabled: false
-
-# Health check configuration
-healthcheck:
-  enabled: true
-
-# Pilot telemetry (disabled for privacy)
-pilot:
-  enabled: false
-
-# Experimental features
-experimental:
-  plugins:
+########################################################################################################################
+# Tracing Configuration (Optional)
+########################################################################################################################
+tracing:
+  jaeger:
+    enabled: false
+  otlp:
     enabled: false
 
-# Additional arguments
-additionalArguments:
-  # Gateway API configuration
-  - "--providers.kubernetesgateway=true"
-  - "--providers.kubernetesgateway.allowCrossNamespace=true"
-  - "--providers.kubernetesgateway.allowExternalNameServices=true"
-  
-  # Certificate resolvers (ACME disabled as we use ACM)
-  - "--certificatesresolvers.letsencrypt.acme.tlschallenge=false"
-  
-  # Enable API
-  - "--api=true"
-  - "--api.dashboard=true"
-  - "--api.insecure=false"
-  
-  # Tracing (optional)
-  - "--tracing=false"
+########################################################################################################################
+# TLS Configuration
+########################################################################################################################
+tlsOptions:
+  default:
+    minVersion: "VersionTLS12"
+    maxVersion: "VersionTLS13"
+    cipherSuites:
+      - "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384"
+      - "TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305"
+      - "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"
 
-# Environment variables
+########################################################################################################################
+# Node Selector and Affinity
+########################################################################################################################
+nodeSelector: {}
+
+tolerations: []
+
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values:
+                  - traefik
+          topologyKey: kubernetes.io/hostname
+
+########################################################################################################################
+# Environment Variables
+########################################################################################################################
 env:
   - name: POD_NAME
     valueFrom:
@@ -193,112 +310,51 @@ env:
       fieldRef:
         fieldPath: metadata.namespace
 
-# Node selector for scheduling
-nodeSelector:
-  kubernetes.io/os: linux
+########################################################################################################################
+# Additional Volumes and Volume Mounts
+########################################################################################################################
+volumes:
+  - name: tmp
+    emptyDir: {}
+  - name: plugins-storage
+    emptyDir: {}
 
-# Tolerations
-tolerations: []
+volumeMounts:
+  - name: tmp
+    mountPath: /tmp
+  - name: plugins-storage
+    mountPath: /plugins-storage
 
-# Affinity rules for high availability
-affinity:
-  podAntiAffinity:
-    preferredDuringSchedulingIgnoredDuringExecution:
-    - weight: 100
-      podAffinityTerm:
-        labelSelector:
-          matchExpressions:
-          - key: app.kubernetes.io/name
-            operator: In
-            values:
-            - traefik
-        topologyKey: kubernetes.io/hostname
+########################################################################################################################
+# Experimental Features
+########################################################################################################################
+experimental:
+  v3:
+    enabled: false
+  plugins:
+    enabled: false
+  kubernetesGateway:
+    enabled: true
+    # Certificate management
+    certificateGeneration:
+      enabled: true
+      resolvers:
+        - letsencrypt
 
-# Persistence (disabled as we don't need persistent storage)
-persistence:
+########################################################################################################################
+# Hub Configuration (Traefik Hub integration)
+########################################################################################################################
+hub:
   enabled: false
 
-# Additional volumes for certificates (if needed)
-volumes: []
+########################################################################################################################
+# Additional Labels
+########################################################################################################################
+commonLabels:
+  app.kubernetes.io/component: "ingress-controller"
+  app.kubernetes.io/part-of: "traefik"
 
-# Additional volume mounts
-volumeMounts: []
-
-# Horizontal Pod Autoscaler (enabled/disabled via Terraform)
-autoscaling:
-  enabled: false  # Set via Terraform based on environment
-  # minReplicas/maxReplicas set via Terraform
-  metrics:
-  - type: Resource
-    resource:
-      name: cpu
-      target:
-        type: Utilization
-        averageUtilization: 70
-
-# Pod Disruption Budget
-podDisruptionBudget:
-  enabled: true
-  minAvailable: 1
-
-# Enable readiness and liveness probes
-readinessProbe:
-  httpGet:
-    path: /ping
-    port: 9000
-  initialDelaySeconds: 2
-  periodSeconds: 10
-
-livenessProbe:
-  httpGet:
-    path: /ping
-    port: 9000
-  initialDelaySeconds: 10
-  periodSeconds: 10name
-            operator: In
-            values:
-            - traefik
-        topologyKey: kubernetes.io/hostname
-
-# Persistence (disabled as we don't need persistent storage)
-persistence:
-  enabled: false
-
-# Additional volumes for certificates (if needed)
-volumes: []
-
-# Additional volume mounts
-volumeMounts: []
-
-# Horizontal Pod Autoscaler
-autoscaling:
-  enabled: false  # Can be enabled later if needed
-  minReplicas: 2
-  maxReplicas: 10
-  metrics:
-  - type: Resource
-    resource:
-      name: cpu
-      target:
-        type: Utilization
-        averageUtilization: 70
-
-# Pod Disruption Budget
-podDisruptionBudget:
-  enabled: true
-  minAvailable: 1
-
-# Enable readiness and liveness probes
-readinessProbe:
-  httpGet:
-    path: /ping
-    port: 9000
-  initialDelaySeconds: 2
-  periodSeconds: 10
-
-livenessProbe:
-  httpGet:
-    path: /ping
-    port: 9000
-  initialDelaySeconds: 10
-  periodSeconds: 10
+########################################################################################################################
+# Priority Class
+########################################################################################################################
+priorityClassName: "system-cluster-critical"
