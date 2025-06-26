@@ -1,0 +1,39 @@
+# Istio Base Chart Values for EKS Auto Mode
+# Installs CRDs and base resources required by all Istio components
+
+# Global settings
+global:
+  # Default resources for all components
+  defaultResources:
+    requests:
+      cpu: 10m
+      memory: 32Mi
+    limits:
+      cpu: 100m
+      memory: 64Mi
+
+  # Logging configuration
+  logging:
+    level: "default:info"
+
+  # Image settings
+  hub: docker.io/istio
+  tag: 1.26.1
+  variant: distroless
+
+  # Mesh configuration
+  meshID: mesh1
+  network: network1
+
+# Base-specific configuration
+base:
+  # Validation webhook configuration
+  enableIstioConfigCRDs: true
+  
+  # Default revision settings
+  defaultRevision: ""
+
+# CRD installation
+crds:
+  # Keep CRDs on uninstall for upgrade scenarios
+  keep: true
