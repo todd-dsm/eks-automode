@@ -1,0 +1,126 @@
+# Istio CNI Chart Values for EKS Auto Mode Ambient
+# Based on: https://github.com/istio/istio/blob/master/manifests/charts/istio-cni/values.yaml
+
+# Global settings
+global:
+  
+  # Image settings
+  hub: docker.io/istio
+  tag: 1.26.1
+  variant: distroless
+  
+  # Logging
+  logging:
+    level: "default:info"
+
+# Ambient mode configuration
+ambient:
+  # Enable ambient redirection
+  enabled: true
+  
+  # Selector for ambient-enabled pods
+  enablementSelectors:
+  - podSelector:
+      matchLabels: 
+        istio.io/dataplane-mode: ambient
+  
+  # Tolerations for ambient components
+  tolerations:
+    - operator: Exists
+
+# CNI configuration
+cni:
+  # CNI binary and config directories (EKS actual defaults)
+  # https://github.com/aws/amazon-vpc-cni-k8s/blob/master/misc/10-aws.conflist
+  cniBinDir: /opt/cni/bin
+  cniConfDir: /etc/cni/net.d
+  cniConfFileName: "10-aws.conflist"
+  
+  # Enable chained CNI mode (required for EKS with AWS VPC CNI)
+  chained: true
+  
+  # Log level for CNI operations
+  logLevel: info
+
+# Resource management
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 200m
+    memory: 256Mi
+
+# Tolerations for the CNI DaemonSet (at root level, not under ambient)
+tolerations:
+  # Make sure istio-cni-node gets scheduled on all nodes
+  - effect: NoSchedule
+    operator: Exists
+  # Mark the pod as a critical add-on for rescheduling
+  - key: CriticalAddonsOnly
+    operator: Exists
+  - effect: NoExecute
+    operator: Exists
+
+# Node selection
+nodeSelector:
+  kubernetes.io/os: linux
+
+# Priority class for system-critical workload
+priorityClassName: system-node-critical
+
+# Update strategy for DaemonSet
+updateStrategy:
+  type: RollingUpdate
+  rollingUpdate:
+    maxUnavailable: 1
+
+# Revision configuration (for canary deployments)
+revision: ""
+
+# Security context
+securityContext:
+  runAsNonRoot: false  # Required for CNI operations
+  runAsUser: 0         # Required for network manipulation
+  privileged: true     # Required for iptables modifications
+
+# Pod security context
+podSecurityContext:
+  fsGroup: 0
+
+# Service account
+serviceAccount:
+  create: true
+  name: istio-cni
+  annotations: {}
+
+# Resource quotas (for platforms like GKE)
+resourceQuotas:
+  enabled: false
+  pods: 5000
+
+# Additional environment variables
+env:
+  CNI_NETWORK_CONFIG: ""
+  CNI_NET_DIR: /etc/cni/net.d
+  
+# Startup probe
+startupProbe:
+  enabled: true
+  failureThreshold: 30
+  periodSeconds: 1
+  timeoutSeconds: 5
+
+# Liveness probe  
+livenessProbe:
+  enabled: true
+  failureThreshold: 3
+  periodSeconds: 15
+  timeoutSeconds: 5
+
+# Readiness probe
+readinessProbe:
+  enabled: true
+  failureThreshold: 30
+  periodSeconds: 2
+  timeoutSeconds: 3
