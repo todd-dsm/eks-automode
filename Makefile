@@ -106,7 +106,7 @@ module-%: check-env init fmt
 	@echo "  make apply-$*"
 
 # Destroy with random confirmation code
-destroy: check-env init
+destroy: check-env
 	@current_env=$$(grep "^env_build" terraform.tfvars | cut -d'"' -f2); \
 	current_region=$$(grep "^region" terraform.tfvars | cut -d'"' -f2); \
 	confirm_code=$$(openssl rand -hex 3); \
