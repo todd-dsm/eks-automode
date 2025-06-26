@@ -1,0 +1,84 @@
+# SigNoz Values - NO PERSISTENCE (Testing Only)
+# This will lose all data on restart but should deploy faster
+
+global: {}
+
+serviceAccount:
+  create: true
+  name: "signoz"
+  annotations: {}
+
+frontend:
+  replicaCount: 1
+  resources:
+    limits:
+      cpu: 200m
+      memory: 512Mi
+    requests:
+      cpu: 50m
+      memory: 128Mi
+  service:
+    type: ClusterIP
+
+queryService:
+  replicaCount: 1
+  resources:
+    limits:
+      cpu: 200m
+      memory: 512Mi
+    requests:
+      cpu: 50m
+      memory: 128Mi
+  service:
+    type: ClusterIP
+
+otelCollector:
+  replicaCount: 1
+  resources:
+    limits:
+      cpu: 200m
+      memory: 512Mi
+    requests:
+      cpu: 50m
+      memory: 128Mi
+
+# ClickHouse - NO PERSISTENCE
+clickhouse:
+  installCustomStorageClass: false
+  resources:
+    limits:
+      cpu: 500m
+      memory: 1Gi
+    requests:
+      cpu: 100m
+      memory: 256Mi
+  persistence:
+    enabled: false  # DISABLE PERSISTENCE FOR TESTING
+
+# Zookeeper - NO PERSISTENCE  
+zookeeper:
+  enabled: true
+  replicaCount: 1
+  resources:
+    limits:
+      cpu: 200m
+      memory: 512Mi
+    requests:
+      cpu: 50m
+      memory: 128Mi
+  persistence:
+    enabled: false  # DISABLE PERSISTENCE FOR TESTING
+
+# Disable everything else
+alertmanager:
+  enabled: false
+k8sInfraMetrics:
+  enabled: false
+ingress:
+  enabled: false
+serviceMonitor:
+  enabled: false
+jaeger:
+  enabled: false
+zipkin:
+  enabled: false

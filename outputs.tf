@@ -142,3 +142,15 @@
 # output "vpc_endpoints" {
 #   value = module.network.vpc_endpoints
 # }
+
+
+/*
+  ------------------------------------------------------------------------------------------------------------------------
+  Outputs: Traefik
+  ------------------------------------------------------------------------------------------------------------------------
+*/
+# output "traefik_url" {
+#   description = "DNS name for Traefik"
+#   value       = "https://${module.eks_addons.traefik_doman_name}"
+# }
+

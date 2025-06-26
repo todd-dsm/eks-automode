@@ -51,15 +51,13 @@ module "removals" {
   EKS Cluster: Helm Addons (Third-Party)
   ------------------------------------------------------------------------------------------------------------------------
 */
-module "eks_addons" {
-  source            = "./mods/addons"
-  project           = var.project
-  env_build         = var.env_build
-  dns_zone          = var.dns_zone
-  oidc_provider_arn = module.eks.oidc_provider_arn
-  cluster_name      = module.eks.cluster_name
-  # traefik_certificate_domain = var.traefik_certificate_domain
-  # traefik_certificate_sans   = var.traefik_certificate_sans
-  tags       = local.tags
-  depends_on = [module.removals]
-}
+# module "eks_addons" {
+#   source            = "./mods/addons"
+#   project           = var.project
+#   env_build         = var.env_build
+#   dns_zone          = var.dns_zone
+#   oidc_provider_arn = module.eks.oidc_provider_arn
+#   cluster_name      = module.eks.cluster_name
+#   tags              = local.tags
+#   depends_on        = [module.removals]
+# }
