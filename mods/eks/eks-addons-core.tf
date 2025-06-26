@@ -1,46 +1,30 @@
-########################################################################################################################
-# Core EKS Addons Only - Native AWS EKS Addons
-########################################################################################################################
-# FSx CSI driver
-# https://github.com/aws/aws-fsx-csi-driver
-resource "aws_eks_addon" "fsx_csi_driver" {
-  cluster_name             = aws_eks_cluster.eks_auto.name
-  addon_name               = "aws-fsx-csi-driver"
-  addon_version            = data.aws_eks_addon_version.fsx_csi_driver.version
-  service_account_role_arn = module.fsx_csi_driver_irsa.iam_role_arn
+#######################################################################################################################
+# These add-ons are included in the EKS Auto Mode by default
+# VPC CNI plugin
+# CoreDNS
+# kube-proxy
+# EBS storage capability (not the full EBS CSI driver addon)
+# AWS Load Balancer Controller
+# Karpenter for node management
 
-  depends_on = [
-    aws_eks_cluster.eks_auto,
-    module.fsx_csi_driver_irsa
-  ]
-}
+# Not Included & Managed:
+# Any app-specific add-ons
+# AWS EFS CSI driver
+# Observability Stack Components
+#  - AWS Distro for OpenTelemetry (ADOT)
+#  - AWS X-Ray
+#  - AWS CloudWatch Container Insights
+#  - AWS CloudWatch Logs
+#  - AWS CloudWatch Metrics
+#  - AWS CloudWatch Events
+#  - AWS CloudWatch Alarms
 
-# Mountpoint for S3 CSI driver
-# https://github.com/awslabs/mountpoint-s3-csi-driver
-resource "aws_eks_addon" "mountpoint_for_s3_csi_driver" {
-  cluster_name             = aws_eks_cluster.eks_auto.name
-  addon_name               = "aws-mountpoint-s3-csi-driver"
-  addon_version            = data.aws_eks_addon_version.mountpoint_for_s3_csi_driver.version
-  service_account_role_arn = module.mountpoint_for_s3_csi_driver_irsa.iam_role_arn
-
-  depends_on = [
-    aws_eks_cluster.eks_auto
-  ]
-}
 
 ########################################################################################################################
-# Data sources for addon versions
-########################################################################################################################
-# FSx CSI driver
-data "aws_eks_addon_version" "fsx_csi_driver" {
-  addon_name         = "aws-fsx-csi-driver"
-  kubernetes_version = aws_eks_cluster.eks_auto.version
-  most_recent        = true
-}
-
-# Mountpoint for S3 CSI driver - CORRECT name: aws-mountpoint-s3-csi-driver
-data "aws_eks_addon_version" "mountpoint_for_s3_csi_driver" {
-  addon_name         = "aws-mountpoint-s3-csi-driver"
-  kubernetes_version = aws_eks_cluster.eks_auto.version
-  most_recent        = true
-}
+# IRSAs to Support EKS Addons
+# VER: https://github.com/terraform-aws-modules/terraform-aws-iam/releases
+# TFR: https://registry.terraform.io/modules/terraform-aws-modules/iam/aws/latest/examples/iam-role-for-service-accounts-eks
+# SPT: https://github.com/terraform-aws-modules/terraform-aws-iam/tree/master/examples/iam-role-for-service-accounts-eks
+# DOC: https://aws.amazon.com/blogs/opensource/introducing-fine-grained-iam-roles-service-accounts/
+# EXs: https://github.com/terraform-aws-modules/terraform-aws-iam/blob/7825816ce6cb6a2838c0978b629868d24358f5aa/README.md
+# ######################################################################################################################
