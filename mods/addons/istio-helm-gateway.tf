@@ -1,5 +1,6 @@
 ########################################################################################################################
-# Istio Ingress Gateway - For External Traffic via AWS NLB
+# Phase 3: External Traffic (Optional)
+# Step  4: Istio Ingress Gateway via AWS Load Balancer Controller
 # DOCS: https://istio.io/latest/docs/ambient/install/helm/
 ########################################################################################################################
 resource "helm_release" "istio_ingress_gateway" {
@@ -45,7 +46,6 @@ resource "helm_release" "istio_ingress_gateway" {
 
   depends_on = [
     helm_release.ztunnel,
-    kubernetes_namespace.istio_ingress
   ]
 
   lifecycle {
