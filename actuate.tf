@@ -28,7 +28,7 @@ module "eks" {
   project         = var.project
   env_build       = var.env_build
   cluster_version = var.cluster_version
-  subnet_ids      = module.network.private_subnet_ids
+  subnet_ids      = module.network.subnet_ids_private
   dns_zone        = var.dns_zone
   zone_private    = var.zone_private
   tags            = local.tags
@@ -37,7 +37,7 @@ module "eks" {
 
 /*
   ------------------------------------------------------------------------------------------------------------------------
-  Readjustments
+  Readjustments; a palette cleanser, if you will.
    * Container Insights Cleanup: Remove CloudWatch Agent and Fluent Bit
   ------------------------------------------------------------------------------------------------------------------------
 */
@@ -51,13 +51,16 @@ module "removals" {
   EKS Cluster: Helm Addons (Third-Party)
   ------------------------------------------------------------------------------------------------------------------------
 */
-# module "eks_addons" {
-#   source            = "./mods/addons"
-#   project           = var.project
-#   env_build         = var.env_build
-#   dns_zone          = var.dns_zone
-#   oidc_provider_arn = module.eks.oidc_provider_arn
-#   cluster_name      = module.eks.cluster_name
-#   tags              = local.tags
-#   depends_on        = [module.removals]
-# }
+module "eks_addons" {
+  source            = "./mods/addons"
+  project           = var.project
+  env_build         = var.env_build
+  dns_zone          = var.dns_zone
+  oidc_provider_arn = module.eks.oidc_provider_arn
+  cluster_name      = module.eks.cluster_name
+  certificate_arn   = module.eks.certificate_arn
+  vpc_id            = module.network.vpc_id
+  subnet_ids_public = module.network.subnet_ids_public
+  tags              = local.tags
+  depends_on        = [module.removals]
+}

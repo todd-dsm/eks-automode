@@ -62,9 +62,6 @@ data "aws_route53_zone" "selected" {
   private_zone = var.zone_private
 }
 
-########################################################################################################################
-# Compatibility outputs (so other modules don't break)
-########################################################################################################################
 # Find existing certificates (for reference)
 data "aws_acm_certificate" "amazon_issued" {
   domain      = var.dns_zone
@@ -74,6 +71,9 @@ data "aws_acm_certificate" "amazon_issued" {
   depends_on = [aws_acm_certificate_validation.environment]
 }
 
+########################################################################################################################
+# Compatibility outputs (so other modules don't break)
+########################################################################################################################
 # Output the validated certificate ARN (replaces module output)
 output "certificate_arn" {
   description = "ARN of the validated certificate"

@@ -32,6 +32,32 @@
 #   value = module.eks_addons.lbc_irsa_role_arn
 # }
 
+
+/*
+  ------------------------------------------------------------------------------------------------------------------------
+  Outputs: Istio Ambient Mode
+  ------------------------------------------------------------------------------------------------------------------------
+*/
+# output "istio_ambient_status" {
+#   description = "Istio Ambient Mode deployment status"
+#   value       = module.eks_addons.istio_ambient_deployment_status
+# }
+
+# output "istio_gateway_endpoint" {
+#   description = "Istio ingress gateway endpoint information"
+#   value       = module.eks_addons.istio_ingress_gateway_loadbalancer
+# }
+
+# output "istio_setup_instructions" {
+#   description = "Istio setup and verification instructions"
+#   value       = module.eks_addons.istio_access_instructions
+# }
+
+output "subnet_ids_public" {
+  description = "Public subnet IDs"
+  value       = module.network.subnet_ids_public
+}
+
 /*
   ------------------------------------------------------------------------------------------------------------------------
   Outputs: ACM Certificates

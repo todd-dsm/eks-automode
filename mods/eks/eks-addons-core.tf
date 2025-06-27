@@ -8,17 +8,21 @@
 # Karpenter for node management
 
 # Not Included & Managed:
-# Any app-specific add-ons
-# AWS EFS CSI driver
-# Observability Stack Components
-#  - AWS Distro for OpenTelemetry (ADOT)
-#  - AWS X-Ray
-#  - AWS CloudWatch Container Insights
-#  - AWS CloudWatch Logs
-#  - AWS CloudWatch Metrics
-#  - AWS CloudWatch Events
-#  - AWS CloudWatch Alarms
-
+# Preconfigured (but disabled) storage add-ons:
+#   * AWS EFS CSI driver
+#   * FSx CSI driver
+#   * Mountpoint for S3 CSI driver
+#   * Snapshot Controller (Builds in 15m20s)
+#----------------------------------------------------------------------------------------------------------------------
+# For now, we're favoring SigNoz; we won't be using these:
+#   * Observability Stack Components
+#     - AWS Distro for OpenTelemetry (ADOT)
+#     - AWS X-Ray
+#     - AWS CloudWatch Container Insights
+#     - AWS CloudWatch Logs
+#     - AWS CloudWatch Metrics
+#     - AWS CloudWatch Events
+#     - AWS CloudWatch Alarms
 
 ########################################################################################################################
 # IRSAs to Support EKS Addons
