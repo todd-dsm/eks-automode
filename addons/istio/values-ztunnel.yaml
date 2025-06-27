@@ -1,0 +1,209 @@
+# Istio Ztunnel Values.yaml for EKS Auto Mode with Ambient Mesh
+# 
+# Reference Links:
+# - Ztunnel Architecture: https://istio.io/latest/blog/2023/rust-based-ztunnel/
+# - Ambient Mode Install: https://istio.io/latest/docs/ambient/install/helm/
+# - EKS Platform Prerequisites: https://istio.io/latest/docs/ambient/install/platform-prerequisites/
+# - Traffic Redirection: https://istio.io/latest/docs/ambient/architecture/traffic-redirection/
+# - Performance Overview: https://istio.io/latest/blog/2025/ambient-performance/
+# - Ztunnel GitHub: https://github.com/istio/ztunnel
+# - Helm Chart: https://artifacthub.io/packages/helm/istio-official/ztunnel
+#
+# Compatible with:
+# - Istio v1.26.x (latest stable)
+# - Kubernetes 1.29-1.32 (EKS Auto Mode)
+# - AWS EKS Auto Mode
+# - Cilium CNI (compatible with in-pod traffic redirection)
+
+########################################################################################################################
+# Global Configuration
+########################################################################################################################
+# Do not modify _internal_defaults_do_not_set - use direct field overrides instead
+_internal_defaults_do_not_set:
+  hub: docker.io/istio
+  tag: "1.26.1"  # Use specific version for production
+  variant: "distroless"  # Production-optimized distroless images
+  image: ztunnel
+
+global:
+  # Network name for multi-cluster setup (optional)
+  network: ""
+  # Platform-specific configuration for AWS EKS
+  platform: ""  # Leave empty for standard EKS
+
+
+# Resource Naming and Labels
+# Use default resource name unless you have specific naming requirements
+resourceName: ""
+
+# Labels and annotations for all ztunnel resources
+labels:
+  app.kubernetes.io/managed-by: terraform
+  environment: production
+  
+annotations:
+  # ArgoCD or GitOps annotations
+  argocd.argoproj.io/sync-wave: "2"
+
+
+# Pod Configuration
+# Pod annotations for monitoring and discovery
+podAnnotations:
+  prometheus.io/port: "15020"
+  prometheus.io/scrape: "true"
+  prometheus.io/path: "/metrics"
+
+# Additional pod labels for observability
+podLabels:
+  sidecar.istio.io/inject: "false"
+  istio.io/dataplane-mode: none
+  app: ztunnel
+
+
+# Resource Allocation (Optimized for EKS Auto Mode)
+resources:
+  requests:
+    cpu: 100m  # Reduced from default 200m for cost optimization
+    # Memory scales with cluster size - this handles ~100k endpoints
+    memory: 256Mi  # Reduced from default 512Mi for smaller clusters
+  limits:
+    cpu: 1000m  # Allow bursting for high traffic scenarios
+    memory: 1Gi   # Sufficient headroom for scaling
+
+# Resource quotas (disabled by default)
+resourceQuotas:
+  enabled: false
+  pods: 5000
+
+
+# Node Placement and Tolerations
+# Tolerations to run on all nodes including tainted ones
+tolerations:
+  - effect: NoSchedule
+    operator: Exists
+  - key: CriticalAddonsOnly
+    operator: Exists
+  - effect: NoExecute
+    operator: Exists
+  # EKS-specific tolerations
+  - key: eks.amazonaws.com/compute-type
+    operator: Equal
+    value: fargate
+    effect: NoSchedule
+  - key: node.kubernetes.io/not-ready
+    operator: Exists
+    effect: NoExecute
+    tolerationSeconds: 30
+# Node selector for Linux nodes only
+nodeSelector:
+  kubernetes.io/os: linux
+# Multi-cluster Configuration (for future expansion)
+multiCluster:
+  # Cluster name must match istiod configuration
+  clusterName: ""
+
+
+# Security Configuration
+# Service account configuration for IRSA (if needed)
+imagePullSecrets: []
+
+# Environment variables for ztunnel configuration
+env:
+  # Enable detailed logging for troubleshooting (disable in production)
+  RUST_LOG: "info"
+  # AWS-specific optimizations
+  PILOT_ENABLE_AMBIENT: "true"
+
+# Container image pull policy
+imagePullPolicy: "IfNotPresent"
+
+
+# Mesh Configuration
+meshConfig:
+  defaultConfig:
+    # Proxy metadata for advanced configuration
+    proxyMetadata:
+      # AWS region for multi-region deployments
+      AWS_REGION: "us-east-1"
+      # Optimize for AWS networking
+      BOOTSTRAP_XDS_AGENT: "true"
+
+
+# Connection and Lifecycle Configuration
+# Graceful shutdown configuration
+terminationGracePeriodSeconds: 30
+
+# Istiod connection configuration
+revision: ""  # Leave empty for default revision
+caAddress: ""  # Use default CA address
+xdsAddress: ""  # Use default XDS address
+istioNamespace: istio-system
+
+
+# Logging Configuration
+# Log level: trace, debug, info, warn, error
+logLevel: info
+# JSON formatted logs for better parsing in CloudWatch
+logAsJson: true
+
+
+# Security Context (EKS-specific)
+# SELinux options (typically not needed on EKS)
+seLinuxOptions: {}
+
+
+# Volume Mounts and Volumes
+# Additional volumes for advanced configurations
+volumes: []
+# Additional volume mounts
+volumeMounts: []
+
+
+# Production Hardening
+# Enable only necessary features for production
+experimental:
+  # Disable experimental features in production
+  enabled: false
+
+# Affinity rules for optimal pod distribution
+affinity:
+  nodeAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: kubernetes.io/os
+          operator: In
+          values:
+          - linux
+    preferredDuringSchedulingIgnoredDuringExecution:
+    - weight: 100
+      preference:
+        matchExpressions:
+        - key: node.kubernetes.io/instance-type
+          operator: NotIn
+          values:
+          - t3.nano
+          - t3.micro
+
+
+# Update Strategy
+updateStrategy:
+  type: RollingUpdate
+  rollingUpdate:
+    maxUnavailable: 1
+    maxSurge: 0  # DaemonSet doesn't support maxSurge
+
+
+# Health Checks and Monitoring
+# Configure health checks
+healthCheck:
+  enabled: true
+  
+# Metrics configuration
+metrics:
+  enabled: true
+  
+# Admin interface configuration  
+admin:
+  enabled: true
+  port: 15000
