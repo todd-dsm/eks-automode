@@ -1,5 +1,6 @@
 ########################################################################################################################
-# Ztunnel - Istio Ambient Mode Node Proxy (Data Plane)
+# Phase 3: Ambient Data Plane
+# Step  3: Ztunnel - (Node Proxy)
 # DOCS: https://istio.io/latest/docs/ambient/install/helm/
 ########################################################################################################################
 resource "helm_release" "ztunnel" {
