@@ -60,7 +60,6 @@ module "eks_addons" {
   cluster_name      = module.eks.cluster_name
   certificate_arn   = module.eks.certificate_arn
   vpc_id            = module.network.vpc_id
-  subnet_ids_public = module.network.subnet_ids_public
   tags              = local.tags
   depends_on        = [module.removals]
 }

@@ -18,10 +18,19 @@
 # - Network Load Balancer (NLB) with IP targets
 
 ########################################################################################################################
+# Image Configuration (CRITICAL - Fixes "auto" image pull error)
+########################################################################################################################
+_internal_defaults_do_not_set:
+  hub: docker.io/istio
+  tag: "1.26.1"  # Use specific version for production
+  variant: "distroless"  # Production-optimized distroless images
+  image: proxyv2
+
+########################################################################################################################
 # Global Configuration
 ########################################################################################################################
-# Do not modify _internal_defaults_do_not_set - use direct field overrides instead
-_internal_defaults_do_not_set:
+# Global image settings (alternative approach)
+global:
   # Gateway deployment name (auto-generated from release name)
   name: ""
   # Istio revision for multi-control plane scenarios
@@ -31,7 +40,7 @@ _internal_defaults_do_not_set:
 # Gateway Deployment Configuration
 ########################################################################################################################
 # Number of gateway replicas for high availability
-replicaCount: 2
+replicaCount: 3
 
 # Deployment kind (Deployment is recommended over DaemonSet for gateways)
 kind: Deployment

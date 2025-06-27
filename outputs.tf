@@ -53,11 +53,6 @@
 #   value       = module.eks_addons.istio_access_instructions
 # }
 
-output "subnet_ids_public" {
-  description = "Public subnet IDs"
-  value       = module.network.subnet_ids_public
-}
-
 /*
   ------------------------------------------------------------------------------------------------------------------------
   Outputs: ACM Certificates

@@ -12,11 +12,6 @@ variable "vpc_id" {
   type        = string
 }
 
-variable "subnet_ids_public" {
-  description = "Public subnet IDs"
-  type        = list(string)
-}
-
 variable "certificate_arn" {
   description = "Certificate ARN"
   type        = string
