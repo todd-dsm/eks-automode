@@ -1,0 +1,138 @@
+# Istiod Chart Values for EKS Auto Mode Ambient
+# Based on official Istio structure and ambient profile requirements
+# References:
+# - https://github.com/istio/istio/blob/master/manifests/helm-profiles/ambient.yaml
+# - https://github.com/istio/istio/blob/master/manifests/charts/istio-control/istio-discovery/values.yaml
+# - Official ambient profile: --set profile=ambient
+
+# Global configuration (shared across all Istio components)
+global:
+  
+  # Image configuration
+  hub: docker.io/istio
+  tag: 1.26.1
+  variant: distroless
+  
+  # Mesh configuration for ambient mode
+  meshID: mesh1
+  network: network1
+  
+  # Logging configuration
+  logging:
+    level: "default:info"
+  
+  # Default resources (can be overridden per component)
+  defaultResources:
+    requests:
+      cpu: 10m
+      memory: 32Mi
+    limits:
+      cpu: 100m
+      memory: 128Mi
+
+# Mesh configuration (ambient mode requirements)
+meshConfig:
+  defaultConfig:
+    # Enable HBONE protocol for ambient mode
+    proxyMetadata:
+      ISTIO_META_ENABLE_HBONE: "true"
+
+# Pilot configuration (the main istiod component)
+pilot:
+  # Environment variables for ambient mode
+  env:
+    PILOT_ENABLE_AMBIENT: "true"
+    PILOT_ENABLE_WORKLOAD_ENTRY_AUTOREGISTRATION: true
+    PILOT_ENABLE_CROSS_CLUSTER_WORKLOAD_ENTRY: false
+    PILOT_ENABLE_NETWORK_POLICIES: true
+    
+  # Resource configuration for istiod
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+      
+  # High availability
+  replicaCount: 2
+  
+  # Pod disruption budget
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 1
+    
+  # Node selection for EKS
+  nodeSelector:
+    kubernetes.io/os: linux
+    
+  # Tolerations for system workloads
+  tolerations:
+    - key: CriticalAddonsOnly
+      operator: Exists
+    - effect: NoSchedule
+      key: node-role.kubernetes.io/master
+
+# Telemetry v2 configuration
+telemetry:
+  enabled: true
+  v2:
+    enabled: true
+    prometheus:
+      enabled: true
+      stackdriver:
+        enabled: false
+
+# Security configuration
+istiodRemote:
+  enabled: false
+
+# Revision configuration (for canary upgrades)
+revision: ""
+revisionTags: []
+
+# External service discovery
+externalIstiod: false
+
+# Validation webhook
+validationURL: ""
+
+# Default revision
+defaultRevision: ""
+
+# Service account configuration
+serviceAccount:
+  create: true
+  name: "istiod"
+  annotations: {}
+
+# RBAC configuration
+rbac:
+  create: true
+
+# Image pull policy
+imagePullPolicy: IfNotPresent
+
+# Startup and liveness probes
+pilot:
+  startupProbe:
+    enabled: true
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 30
+    
+  livenessProbe:
+    enabled: true
+    initialDelaySeconds: 30
+    periodSeconds: 30
+    timeoutSeconds: 5
+    failureThreshold: 3
+    
+  readinessProbe:
+    enabled: true
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
