@@ -50,7 +50,7 @@ serviceAccount:
   # Create service account for the gateway
   create: true
   # Service account annotations for IRSA (if needed for external integrations)
-  annotations:
+  annotations: {}
     # Add IRSA role ARN if gateway needs AWS API access
     # eks.amazonaws.com/role-arn: arn:aws:iam::ACCOUNT:role/istio-gateway-role
   # Auto-generate service account name from release name
@@ -136,6 +136,7 @@ service:
     service.beta.kubernetes.io/aws-load-balancer-additional-resource-tags: "Environment=production,ManagedBy=terraform,Service=istio-gateway"
     
     # Optional: Subnet specification (auto-discovery if not specified)
+    # https://kubernetes-sigs.github.io/aws-load-balancer-controller/v2.2/deploy/subnet_discovery/#public-subnets
     # service.beta.kubernetes.io/aws-load-balancer-subnets: "subnet-12345,subnet-67890"
     
     # Optional: SSL configuration (uncomment for HTTPS termination at NLB)

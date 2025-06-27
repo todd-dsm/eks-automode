@@ -16,11 +16,11 @@ resource "helm_release" "istio_ingress_gateway" {
 
   # Dynamic Terraform-managed values for AWS NLB integration
   set = [
-    # EKS Auto Mode public subnet IDs for NLB
-    {
-      name  = "service.annotations.service\\.beta\\.kubernetes\\.io/aws-load-balancer-subnets"
-      value = join(",", var.subnet_ids_public)
-    },
+    # # EKS Auto Mode public subnet IDs for NLB
+    # {
+    #   name  = "service.annotations.service\\.beta\\.kubernetes\\.io/aws-load-balancer-subnets"
+    #   value = join(", ", (var.subnet_ids_public))
+    # },
     # Certificate ARN for HTTPS termination
     {
       name  = "service.annotations.service\\.beta\\.kubernetes\\.io/aws-load-balancer-ssl-cert"
