@@ -1,5 +1,6 @@
 ########################################################################################################################
-# Istiod - Istio Control Plane for Ambient Mode
+# Phase 2: Control Plane Foundation
+# Step 2b: Istiod
 # DOCS: https://istio.io/latest/docs/ambient/install/helm/
 ########################################################################################################################
 resource "helm_release" "istiod" {

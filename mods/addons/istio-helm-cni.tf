@@ -1,5 +1,6 @@
 ########################################################################################################################
-# Istio CNI - Required for Ambient Mode
+# Phase 2: Control Plane Foundation
+# Step 2a: Istio CNI Plugin Istio CNI - (Required for Ambient Mode)
 # DOCS: https://istio.io/latest/docs/ambient/install/helm/
 ########################################################################################################################
 resource "helm_release" "istio_cni" {
