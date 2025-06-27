@@ -1,0 +1,422 @@
+# Istio Gateway Values.yaml for EKS Auto Mode with AWS Network Load Balancer (NLB)
+# Reference Links:
+# - Gateway Chart Documentation: https://github.com/istio/istio/blob/master/manifests/charts/gateway/README.md
+# - AWS Load Balancer Controller Annotations: https://kubernetes-sigs.github.io/aws-load-balancer-controller/v2.2/guide/service/annotations/
+# - EKS Network Load Balancing Guide: https://docs.aws.amazon.com/eks/latest/userguide/network-load-balancing.html
+# - Istio Gateway with AWS NLB: https://istio.io/latest/blog/2018/aws-nlb/
+# - AWS Load Balancer Types Comparison: https://aws.amazon.com/elasticloadbalancing/features/
+# - EKS Auto Mode Prerequisites: https://docs.aws.amazon.com/eks/latest/userguide/service-_key-concepts.html
+# - Gateway API Integration: https://gateway-api.sigs.k8s.io/
+# - Helm Gateway Installation: https://istio.io/latest/docs/setup/install/helm/
+# - Service Mesh Best Practices: https://aws.amazon.com/blogs/opensource/getting-started-with-istio-on-amazon-eks/
+#
+# Compatible with:
+# - Istio v1.26.x (latest stable)
+# - Kubernetes 1.29-1.32 (EKS Auto Mode)
+# - AWS EKS Auto Mode
+# - AWS Load Balancer Controller v2.7.2+
+# - Network Load Balancer (NLB) with IP targets
+
+########################################################################################################################
+# Global Configuration
+########################################################################################################################
+# Do not modify _internal_defaults_do_not_set - use direct field overrides instead
+_internal_defaults_do_not_set:
+  # Gateway deployment name (auto-generated from release name)
+  name: ""
+  # Istio revision for multi-control plane scenarios
+  revision: ""
+
+########################################################################################################################
+# Gateway Deployment Configuration
+########################################################################################################################
+# Number of gateway replicas for high availability
+replicaCount: 2
+
+# Deployment kind (Deployment is recommended over DaemonSet for gateways)
+kind: Deployment
+
+########################################################################################################################
+# RBAC Configuration
+########################################################################################################################
+rbac:
+  # Enable RBAC for certificate access (required for TLS)
+  enabled: true
+
+########################################################################################################################
+# Service Account Configuration
+########################################################################################################################
+serviceAccount:
+  # Create service account for the gateway
+  create: true
+  # Service account annotations for IRSA (if needed for external integrations)
+  annotations:
+    # Add IRSA role ARN if gateway needs AWS API access
+    # eks.amazonaws.com/role-arn: arn:aws:iam::ACCOUNT:role/istio-gateway-role
+  # Auto-generate service account name from release name
+  name: "istio-gateway-sa"
+
+########################################################################################################################
+# Pod Configuration and Annotations
+########################################################################################################################
+# Pod annotations for observability and injection
+podAnnotations:
+  # Prometheus metrics scraping
+  prometheus.io/port: "15020"
+  prometheus.io/scrape: "true"
+  prometheus.io/path: "/stats/prometheus"
+  # Istio gateway injection template
+  inject.istio.io/templates: "gateway"
+  # Enable sidecar injection for gateway
+  sidecar.istio.io/inject: "true"
+
+# Pod labels for selection and organization
+podLabels:
+  app.kubernetes.io/managed-by: terraform
+  environment: production
+  gateway-type: ingress
+
+########################################################################################################################
+# Security Context (EKS Auto Mode Optimized)
+########################################################################################################################
+# Pod-level security context
+securityContext:
+  # Run as non-root for security
+  runAsNonRoot: true
+  runAsUser: 1337
+  runAsGroup: 1337
+  # Filesystem optimizations
+  fsGroup: 1337
+
+# Container-level security context  
+containerSecurityContext:
+  # Minimal capabilities for gateway operation
+  capabilities:
+    drop:
+    - ALL
+    add:
+    - NET_BIND_SERVICE  # Required for binding to ports 80/443
+  # Security hardening
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  runAsUser: 1337
+
+########################################################################################################################
+# AWS Network Load Balancer Service Configuration
+########################################################################################################################
+service:
+  # LoadBalancer type for external access via NLB
+  type: LoadBalancer
+  
+  # AWS NLB-specific annotations for EKS Auto Mode
+  annotations:
+    # Core NLB configuration
+    service.beta.kubernetes.io/aws-load-balancer-type: "external"
+    service.beta.kubernetes.io/aws-load-balancer-nlb-target-type: "ip"
+    service.beta.kubernetes.io/aws-load-balancer-scheme: "internet-facing"
+    
+    # Health check configuration
+    service.beta.kubernetes.io/aws-load-balancer-healthcheck-port: "15021"
+    service.beta.kubernetes.io/aws-load-balancer-healthcheck-protocol: "HTTP"
+    service.beta.kubernetes.io/aws-load-balancer-healthcheck-path: "/healthz/ready"
+    service.beta.kubernetes.io/aws-load-balancer-healthcheck-interval: "10"
+    service.beta.kubernetes.io/aws-load-balancer-healthcheck-timeout: "6"
+    service.beta.kubernetes.io/aws-load-balancer-healthcheck-healthy-threshold: "2"
+    service.beta.kubernetes.io/aws-load-balancer-healthcheck-unhealthy-threshold: "2"
+    
+    # Performance and reliability
+    service.beta.kubernetes.io/aws-load-balancer-cross-zone-load-balancing-enabled: "true"
+    service.beta.kubernetes.io/aws-load-balancer-connection-idle-timeout: "60"
+    
+    # Security and access control
+    service.beta.kubernetes.io/load-balancer-source-ranges: "0.0.0.0/0"  # Restrict as needed
+    
+    # Resource tags for cost allocation and management
+    service.beta.kubernetes.io/aws-load-balancer-additional-resource-tags: "Environment=production,ManagedBy=terraform,Service=istio-gateway"
+    
+    # Optional: Subnet specification (auto-discovery if not specified)
+    # service.beta.kubernetes.io/aws-load-balancer-subnets: "subnet-12345,subnet-67890"
+    
+    # Optional: SSL configuration (uncomment for HTTPS termination at NLB)
+    # service.beta.kubernetes.io/aws-load-balancer-ssl-cert: "arn:aws:acm:region:account:certificate/certificate-id"
+    service.beta.kubernetes.io/aws-load-balancer-ssl-ports: "https"
+    service.beta.kubernetes.io/aws-load-balancer-backend-protocol: "tcp"
+
+  # Standard gateway ports configuration
+  ports:
+  - name: status-port
+    port: 15021
+    protocol: TCP
+    targetPort: 15021
+  - name: http2
+    port: 80
+    protocol: TCP
+    targetPort: 8080
+  - name: https
+    port: 443
+    protocol: TCP
+    targetPort: 8443
+  
+  # Additional ports for specific protocols (uncomment as needed)
+  # - name: tcp-custom
+  #   port: 9000
+  #   protocol: TCP
+  #   targetPort: 9000
+
+########################################################################################################################
+# Resource Configuration (EKS Auto Mode Optimized)
+########################################################################################################################
+resources:
+  requests:
+    cpu: 100m      # Reduced for cost optimization
+    memory: 128Mi  # Sufficient for most gateway workloads
+  limits:
+    cpu: 2000m     # Allow bursting for high traffic
+    memory: 1024Mi # Adequate headroom for scaling
+
+########################################################################################################################
+# Auto-scaling Configuration
+########################################################################################################################
+autoscaling:
+  enabled: true
+  minReplicas: 2    # High availability minimum
+  maxReplicas: 10   # Scale for traffic bursts
+  targetCPUUtilizationPercentage: 80
+  targetMemoryUtilizationPercentage: 80
+  
+  # Advanced scaling behavior (optional)
+  autoscaleBehavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+      - type: Percent
+        value: 50
+        periodSeconds: 60
+    scaleUp:
+      stabilizationWindowSeconds: 60
+      policies:
+      - type: Percent
+        value: 100
+        periodSeconds: 30
+
+########################################################################################################################
+# Environment Variables and Configuration
+########################################################################################################################
+# Environment variables for gateway container
+env:
+  # Logging configuration
+  PILOT_ENABLE_WORKLOAD_ENTRY_AUTOREGISTRATION: "true"
+  # Performance tuning
+  PILOT_HTTP10: "1"  # Support HTTP/1.0 clients
+  
+# Additional environment variables from secrets/configmaps
+envVarFrom: []
+
+########################################################################################################################
+# Deployment Strategy and Lifecycle
+########################################################################################################################
+# Rolling update strategy for zero-downtime deployments
+strategy:
+  type: RollingUpdate
+  rollingUpdate:
+    maxUnavailable: 1
+    maxSurge: 1
+
+# Minimum ready seconds before pod is considered ready
+minReadySeconds: 30
+
+# Graceful shutdown configuration
+terminationGracePeriodSeconds: 30
+
+########################################################################################################################
+# Pod Disruption Budget for High Availability
+########################################################################################################################
+podDisruptionBudget:
+  minAvailable: 1
+  # Ensure pods can be evicted for cluster maintenance
+  unhealthyPodEvictionPolicy: AlwaysAllow
+
+########################################################################################################################
+# Node Placement and Affinity
+########################################################################################################################
+# Node selector for Linux nodes (EKS requirement)
+nodeSelector:
+  kubernetes.io/os: linux
+
+# Pod affinity for optimal distribution
+affinity:
+  # Prefer different nodes for high availability
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+    - weight: 100
+      podAffinityTerm:
+        labelSelector:
+          matchLabels:
+            app: istio-gateway
+        topologyKey: kubernetes.io/hostname
+    - weight: 50
+      podAffinityTerm:
+        labelSelector:
+          matchLabels:
+            app: istio-gateway
+        topologyKey: topology.kubernetes.io/zone
+  
+  # Node affinity for compute-optimized instances (optional)
+  nodeAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+    - weight: 100
+      preference:
+        matchExpressions:
+        - key: node.kubernetes.io/instance-type
+          operator: In
+          values:
+          - c5.large
+          - c5.xlarge
+          - c5.2xlarge
+          - m5.large
+          - m5.xlarge
+
+# Tolerations for EKS Auto Mode and tainted nodes
+tolerations:
+- key: eks.amazonaws.com/compute-type
+  operator: Equal
+  value: fargate
+  effect: NoSchedule
+- key: node.kubernetes.io/not-ready
+  operator: Exists
+  effect: NoExecute
+  tolerationSeconds: 30
+- key: node.kubernetes.io/unreachable
+  operator: Exists
+  effect: NoExecute
+  tolerationSeconds: 30
+
+########################################################################################################################
+# Volume Configuration
+########################################################################################################################
+# Additional volumes (customize as needed)
+volumes:
+- name: tmp
+  emptyDir:
+    sizeLimit: 100Mi
+- name: var-log
+  emptyDir:
+    sizeLimit: 100Mi
+
+# Volume mounts
+volumeMounts:
+- name: tmp
+  mountPath: /tmp
+- name: var-log
+  mountPath: /var/log
+
+########################################################################################################################
+# Network Policies (Optional - Enable for Enhanced Security)
+########################################################################################################################
+# networkPolicy:
+#   enabled: true
+#   ingress:
+#   - from:
+#     - namespaceSelector:
+#         matchLabels:
+#           name: istio-system
+#     ports:
+#     - protocol: TCP
+#       port: 8080
+#     - protocol: TCP
+#       port: 8443
+#     - protocol: TCP
+#       port: 15021
+
+########################################################################################################################
+# Monitoring and Observability
+########################################################################################################################
+# Prometheus monitoring configuration
+serviceMonitor:
+  enabled: false  # Enable when Prometheus operator is available
+  interval: 30s
+  scrapeTimeout: 10s
+
+# Log configuration for CloudWatch integration
+logging:
+  level: info
+  format: json  # JSON format for structured logging in CloudWatch
+
+########################################################################################################################
+# Production Hardening
+########################################################################################################################
+# Image pull policy
+imagePullPolicy: IfNotPresent
+
+# Image pull secrets (if using private registries)
+imagePullSecrets: []
+
+# Priority class for gateway pods
+priorityClassName: ""  # Set to system-cluster-critical if needed
+
+########################################################################################################################
+# Gateway-Specific Configuration
+########################################################################################################################
+# Custom gateway configuration (advanced use cases)
+gateways:
+  # Define multiple gateways if needed
+  istio-gateway:
+    # Gateway injection template
+    injectionTemplate: gateway
+    
+    # Custom gateway ports
+    ports:
+    - port: 80
+      targetPort: 8080
+      name: http2
+      protocol: TCP
+    - port: 443
+      targetPort: 8443
+      name: https
+      protocol: TCP
+    - port: 15021
+      targetPort: 15021
+      name: status-port
+      protocol: TCP
+
+########################################################################################################################
+# Advanced EKS Auto Mode Optimizations
+########################################################################################################################
+# Pod topology spread constraints for better distribution
+topologySpreadConstraints:
+- maxSkew: 1
+  topologyKey: topology.kubernetes.io/zone
+  whenUnsatisfiable: DoNotSchedule
+  labelSelector:
+    matchLabels:
+      app: istio-gateway
+- maxSkew: 2
+  topologyKey: kubernetes.io/hostname
+  whenUnsatisfiable: ScheduleAnyway
+  labelSelector:
+    matchLabels:
+      app: istio-gateway
+
+########################################################################################################################
+# Health Checks and Probes
+########################################################################################################################
+# Custom readiness probe (optional - Istio injects default probes)
+# readinessProbe:
+#   httpGet:
+#     path: /healthz/ready
+#     port: 15021
+#   initialDelaySeconds: 10
+#   periodSeconds: 5
+#   timeoutSeconds: 3
+#   failureThreshold: 3
+
+# Custom liveness probe (optional)
+# livenessProbe:
+#   httpGet:
+#     path: /healthz/ready
+#     port: 15021
+#   initialDelaySeconds: 30
+#   periodSeconds: 10
+#   timeoutSeconds: 5
+#   failureThreshold: 3
