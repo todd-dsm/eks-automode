@@ -1,5 +1,6 @@
 ########################################################################################################################
-# Install Gateway API CRDs (Required for Istio Gateway API support)
+# Phase 1: Ingress
+# STEP-1a:Install Gateway API CRDs (Required for Istio Gateway API support)
 ########################################################################################################################
 resource "null_resource" "gateway_api_crds" {
   # Install Gateway API v1.3.0 CRDs

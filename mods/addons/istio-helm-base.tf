@@ -1,5 +1,6 @@
 ########################################################################################################################
-# Istio Base - CRDs and Base Resources
+# Phase 1: Ingress
+# STEP 1b: Istio Base - CRDs and Base Resources
 # HELM: https://istio.io/latest/docs/ambient/install/helm/
 # REPO: https://istio.io/latest/docs/setup/install/helm/
 ########################################################################################################################
