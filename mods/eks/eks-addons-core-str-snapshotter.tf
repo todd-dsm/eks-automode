@@ -14,7 +14,7 @@
 # # Snapshot Controller IRSA
 # module "snapshot_controller_irsa" {
 #   source  = "terraform-aws-modules/iam/aws//modules/iam-role-for-service-accounts-eks"
-#   version = "~> 5.58.0"
+#   version = ">= 5.58.0"
 
 #   role_name_prefix = "${var.project}-snapshot-controller-"
 

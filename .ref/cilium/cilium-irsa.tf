@@ -7,7 +7,7 @@
 # # Cilium IRSA Role
 # module "cilium_irsa" {
 #   source  = "terraform-aws-modules/iam/aws//modules/iam-role-for-service-accounts-eks"
-#   version = "~> 5.48.0"
+#   version = ">= 5.48.0"
 
 #   role_name        = "${var.project}-cilium"
 #   role_description = "IRSA role for Cilium CNI to manage ENIs and AWS resources"

@@ -23,7 +23,7 @@
 # # IRSA for FSx CSI Driver - builds in 25s
 # module "fsx_csi_driver_irsa" {
 #   source  = "terraform-aws-modules/iam/aws//modules/iam-role-for-service-accounts-eks"
-#   version = "~> 5.58.0"
+#   version = ">= 5.58.0"
 
 #   role_name_prefix = "${var.project}-fsx-csi-driver-"
 

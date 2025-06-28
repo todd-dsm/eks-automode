@@ -21,7 +21,7 @@
 # # IRSA for Mountpoint S3 CSI Driver
 # module "mountpoint_for_s3_csi_driver_irsa" {
 #   source  = "terraform-aws-modules/iam/aws//modules/iam-role-for-service-accounts-eks"
-#   version = "~> 5.58.0"
+#   version = ">= 5.58.0"
 
 #   role_name_prefix = "${var.project}-s3-csi-driver-"
 
