@@ -58,7 +58,6 @@ module "eks_addons" {
   dns_zone          = var.dns_zone
   oidc_provider_arn = module.eks.oidc_provider_arn
   cluster_name      = module.eks.cluster_name
-  certificate_arn   = module.eks.certificate_arn
   vpc_id            = module.network.vpc_id
   tags              = local.tags
   depends_on        = [module.removals]

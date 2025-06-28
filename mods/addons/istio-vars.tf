@@ -11,8 +11,3 @@ variable "vpc_id" {
   description = "VPC ID"
   type        = string
 }
-
-variable "certificate_arn" {
-  description = "Certificate ARN"
-  type        = string
-}

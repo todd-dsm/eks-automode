@@ -52,3 +52,10 @@ data "aws_route53_zone" "selected" {
   name         = "${var.dns_zone}."
   private_zone = false
 }
+
+# Environment-specific certificate
+data "aws_acm_certificate" "environment_cert" {
+  domain      = "${var.env_build}.${var.dns_zone}"
+  types       = ["AMAZON_ISSUED"]
+  most_recent = true
+}
