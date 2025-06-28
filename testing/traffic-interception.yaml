@@ -1,0 +1,20 @@
+# Deploy client in same namespace
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sleep
+  namespace: ambient-test
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sleep
+  template:
+    metadata:
+      labels:
+        app: sleep
+    spec:
+      containers:
+      - name: sleep
+        image: curlimages/curl:latest
+        command: ["/bin/sleep", "3600"]

@@ -16,7 +16,6 @@ This guide walks you through testing your Istio Ambient Mode deployment on EKS A
 ```bash
 # Verify all Istio pods are running
 kubectl get pods -n istio-system
-kubectl get pods -n istio-ingress
 
 # Expected output should show:
 # istio-system: istiod, istio-cni-node (DaemonSet), ztunnel (DaemonSet)
