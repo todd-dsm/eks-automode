@@ -128,10 +128,10 @@ gitops-demo-stage-https-redirect               4h22m
 
 
 # Verify route attachment
-kubectl -n istio-system describe httproute
+% kubectl -n istio-system describe httproute
 
 # Check route status
-kubectl -n istio-system get httproute -o yaml | grep -A 5 parentRefs
+% kubectl -n istio-system get httproute -o yaml | grep -A 5 parentRefs
 ```
 
 ### Phase 3: Auto-Created Infrastructure Validation
@@ -180,7 +180,7 @@ gitops-demo-stage-gateway-istio-gateway-class   LoadBalancer   aaa.bbb.ccc.ddd  
 % kubectl -n istio-system describe svc -l app=istio-gateway
 
 # Get load balancer hostname
-GATEWAY_LB=$(kubectl get svc -n istio-system -l app=istio-gateway -o jsonpath='{.items[0].status.loadBalancer.ingress[0].hostname}'); echo $GATEWAY_LB"
+GATEWAY_LB=$(kubectl -n istio-system get svc -l app=istio-gateway -o jsonpath='{.items[0].status.loadBalancer.ingress[0].hostname}'); echo $GATEWAY_LB"
 k8s-istiosys-gitopsde-959a5c9a6f-263f69aaf3630f18.elb.us-east-1.amazonaws.com
 ```
 
@@ -311,7 +311,7 @@ gitops-demo-stage-gateway   istio-gateway-class   k8s-istiosys-gitopsde-xxx.elb.
 
    ```bash
    # Check for name length errors in istiod logs
-   % kubectl logs -n istio-system deployment/istiod | grep "must be no more than 63 characters"
+   % kubectl -n istio-system logs deployment/istiod | grep "must be no more than 63 characters"
    
    # Solution: Shorten GatewayClass name
    metadata:
@@ -319,6 +319,8 @@ gitops-demo-stage-gateway   istio-gateway-class   k8s-istiosys-gitopsde-xxx.elb.
    ```
 
 2. **Missing GatewayClass**
+
+This already terraformed; provided as reference:
 
    ```bash
    # Verify GatewayClass exists
@@ -335,11 +337,11 @@ gitops-demo-stage-gateway   istio-gateway-class   k8s-istiosys-gitopsde-xxx.elb.
    EOF
    ```
 
-3. **Istio controller not ready**
+1. **Istio controller not ready**
 
    ```bash
    # Check istiod status
-   % kubectl get pods -n istio-system -l app=istiod
+   % kubectl -n istio-system get pods -l app=istiod
    
    # Solution: Wait for istiod or restart
    % kubectl rollout restart deployment/istiod -n istio-system
@@ -350,7 +352,7 @@ gitops-demo-stage-gateway   istio-gateway-class   k8s-istiosys-gitopsde-xxx.elb.
 **Symptoms:**
 
 ```bash
-% kubectl get svc -n istio-system -l app=istio-gateway
+% kubectl -n istio-system get svc -l app=istio-gateway
 # No services found
 ```
 
@@ -361,7 +363,7 @@ gitops-demo-stage-gateway   istio-gateway-class   k8s-istiosys-gitopsde-xxx.elb.
 % kubectl describe gateway -n istio-system
 
 # Check istiod logs for service creation
-% kubectl logs -n istio-system deployment/istiod | grep -i service
+% kubectl -n istio-system logs deployment/istiod | grep -i service
 ```
 
 **Solutions:**
@@ -371,14 +373,14 @@ gitops-demo-stage-gateway   istio-gateway-class   k8s-istiosys-gitopsde-xxx.elb.
    ```bash
    # Gateway API is eventually consistent
    # Wait 2-5 minutes then check again
-   % kubectl get svc -n istio-system -l app=istio-gateway
+   % kubectl -n istio-system get svc -l app=istio-gateway
    ```
 
 2. **Check Gateway annotations**
 
    ```bash
    # Verify load balancer annotations are correct
-   % kubectl get gateway -n istio-system -o yaml | grep -A 10 annotations
+   % kubectl -n istio-system get gateway -o yaml | grep -A 10 annotations
    ```
 
 ### Issue 3: Certificate/TLS Issues
@@ -414,7 +416,7 @@ gitops-demo-stage-gateway   istio-gateway-class   k8s-istiosys-gitopsde-xxx.elb.
 
    ```bash
    # Verify Gateway annotations
-   % kubectl get gateway -n istio-system -o yaml | grep ssl-cert
+   % kubectl -n istio-system get gateway -o yaml | grep ssl-cert
    
    # Should show: service.beta.kubernetes.io/aws-load-balancer-ssl-cert: arn:aws:acm:...
    ```
@@ -443,7 +445,7 @@ gitops-demo-stage-gateway   istio-gateway-class   k8s-istiosys-gitopsde-xxx.elb.
 
    ```bash
    # Create CNAME record pointing to load balancer
-   GATEWAY_LB=$(kubectl get svc -n istio-system -l app=istio-gateway -o jsonpath='{.items[0].status.loadBalancer.ingress[0].hostname}')
+   GATEWAY_LB=$(kubectl -n istio-system get svc -l app=istio-gateway -o jsonpath='{.items[0].status.loadBalancer.ingress[0].hostname}')
    
    # Add to Route53 via Terraform or aws CLI
    % aws route53 change-resource-record-sets --hosted-zone-id ZXXXXX --change-batch '{
@@ -494,6 +496,8 @@ HTTP/1.1 404 Not Found
 **Solutions:**
 
 1. **Missing HTTPRoute**
+
+This already terraformed; provided as reference:
 
    ```bash
    # Create HTTPRoute for your application
@@ -634,12 +638,12 @@ echo "  - server: istio-envoy in response headers"
 % kubectl -n istio-system exec deployment/gitops-demo-stage-gateway-istio -c istio-proxy -- pilot-agent request GET config_dump
 
 # Verify proxy status
-istioctl proxy-status
+% istioctl proxy-status
 
 # Check proxy configuration
-istioctl proxy-config cluster gateway-pod-name.istio-system
-istioctl proxy-config listener gateway-pod-name.istio-system
-istioctl proxy-config route gateway-pod-name.istio-system
+% istioctl proxy-config cluster gateway-pod-name.istio-system
+% istioctl proxy-config listener gateway-pod-name.istio-system
+% istioctl proxy-config route gateway-pod-name.istio-system
 ```
 
 #### Traffic Analysis
@@ -666,14 +670,14 @@ curl http://localhost:15020/stats/prometheus | grep istio
 go install github.com/rakyll/hey@latest
 
 # Test basic load
-hey -n 1000 -c 10 https://stage.ptest.us/healthz
+% hey -n 1000 -c 10 https://stage.ptest.us/healthz
 
 # Test with custom headers
-hey -n 500 -c 5 -H "User-Agent: LoadTest" https://stage.ptest.us/
+% hey -n 500 -c 5 -H "User-Agent: LoadTest" https://stage.ptest.us/
 
 # Monitor during load test
-% kubectl top pods -n istio-system -l app=istio-gateway
-% kubectl get hpa -n istio-system
+% kubectl -n istio-system top pods -l app=istio-gateway
+% kubectl -n istio-system get hpa
 ```
 
 ### Stress Testing
@@ -687,7 +691,7 @@ hey -z 5m -c 20 https://stage.ptest.us/healthz
 
 # Monitor cluster auto-scaling
 % kubectl get nodes -w
-% kubectl get pods -n istio-system -l app=istio-gateway -w
+% kubectl -n istio-system get pods -l app=istio-gateway -w
 ```
 
 ## Monitoring and Alerting Setup
@@ -778,7 +782,7 @@ curl https://stage.ptest.us/healthz/ready
 % kubectl -n istio-system exec deployment/gitops-demo-stage-gateway-istio -c istio-proxy -- tcpdump -i eth0 -w /tmp/traffic.pcap
 
 # Analyze with istioctl
-istioctl analyze --all-namespaces
+% istioctl analyze --all-namespaces
 ```
 
 ## Best Practices Summary
