@@ -86,5 +86,5 @@ print_req() {
 print_pass() {
     local green='\033[0;32m'
     local reset='\033[0m'
-    printf '    %btest passed%b\n' "$green" "$reset"
+    printf '    %bstep passed%b\n' "$green" "$reset"
 }
