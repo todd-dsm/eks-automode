@@ -82,6 +82,7 @@ apply: check-env
 	fi
 	@terraform apply -auto-approve $(FILE_PLAN)
 	@echo "=== SUCCESS: Infrastructure deployed ==="
+	@printf '\a'
 
 # Apply specific module
 apply-%: check-env
@@ -148,6 +149,7 @@ destroy: check-env
 	@echo ""
 	@echo "💀 All infrastructure has been destroyed"
 	@echo "✓ Log saved to: /tmp/tf-$(shell grep my_project terraform.tfvars | cut -d'"' -f2)-destroy.out"
+	@printf '\a'
 
 # Check environment helper
 check-env:

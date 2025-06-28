@@ -51,14 +51,14 @@ module "removals" {
   EKS Cluster: Helm Addons (Third-Party)
   ------------------------------------------------------------------------------------------------------------------------
 */
-module "eks_addons" {
-  source            = "./mods/addons"
-  project           = var.project
-  env_build         = var.env_build
-  dns_zone          = var.dns_zone
-  oidc_provider_arn = module.eks.oidc_provider_arn
-  cluster_name      = module.eks.cluster_name
-  vpc_id            = module.network.vpc_id
-  tags              = local.tags
-  depends_on        = [module.removals]
-}
+# module "eks_addons" {
+#   source            = "./mods/addons"
+#   project           = var.project
+#   env_build         = var.env_build
+#   dns_zone          = var.dns_zone
+#   oidc_provider_arn = module.eks.oidc_provider_arn
+#   cluster_name      = module.eks.cluster_name
+#   vpc_id            = module.network.vpc_id
+#   tags              = local.tags
+#   depends_on        = [module.removals]
+# }

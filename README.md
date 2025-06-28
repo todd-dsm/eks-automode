@@ -19,7 +19,7 @@ make apply
 make destroy
 ```
 
-The build happens in `~14` minutes.
+The build happens in `~16` minutes.
 
 <!-- docs/refs -->
 
