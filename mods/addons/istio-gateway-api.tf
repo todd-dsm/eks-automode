@@ -12,7 +12,7 @@ resource "kubernetes_manifest" "istio_gateway_class" {
     apiVersion = "gateway.networking.k8s.io/v1"
     kind       = "GatewayClass"
     metadata = {
-      name = "${var.project}-istio-gateway-class"
+      name = "istio-gateway-class"
       labels = {
         project     = var.project
         environment = var.env_build
@@ -21,7 +21,7 @@ resource "kubernetes_manifest" "istio_gateway_class" {
     }
     spec = {
       controllerName = "istio.io/gateway-controller"
-      description    = "Istio Gateway Class for ${var.project} ${var.env_build}"
+      description    = "Istio Gateway Class for ${var.project}"
     }
   }
 }
@@ -32,7 +32,7 @@ resource "kubernetes_manifest" "environment_gateway" {
     apiVersion = "gateway.networking.k8s.io/v1"
     kind       = "Gateway"
     metadata = {
-      name      = "${var.project}-${var.env_build}-gateway"
+      name      = "${var.project}-gateway"
       namespace = "istio-system"
       labels = {
         app         = "istio-gateway"
