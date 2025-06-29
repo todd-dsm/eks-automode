@@ -13,28 +13,30 @@ This guide provides a comprehensive strategy for deploying long-running infrastr
 
 ## Architecture Overview
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────┐
-│                    EKS Auto Mode Cluster                     │
+│                    EKS Auto Mode Cluster                    │
 ├─────────────────────────┬───────────────────────────────────┤
-│   System NodePool       │        General-Purpose NodePool    │
+│   System NodePool       │        General-Purpose NodePool   │
 │   (CriticalAddonsOnly)  │        (Default - No Taints)      │
 │   • CoreDNS             │        • Your Applications        │
 │   • kube-proxy          │        • General Workloads        │
-│   • AWS VPC CNI         │                                    │
-│   • EBS CSI Driver      │                                    │
+│   • AWS VPC CNI         │                                   │
+│   • EBS CSI Driver      │                                   │
 ├─────────────────────────┴───────────────────────────────────┤
-│              Infrastructure Services NodePool                │
-│              (Custom - Spot Optimized)                       │
-│              • Istio Control Plane                           │
-│              • HashiCorp Vault                               │
-│              • SigNoz Observability                          │
+│              Infrastructure Services NodePool               │
+│              (Custom - Spot Optimized)                      │
+│              • Istio Control Plane                          │
+│              • HashiCorp Vault                              │
+│              • SigNoz Observability                         │
+│              • etc.                                         │
 └─────────────────────────────────────────────────────────────┘
 ```
 
 ## Requirements
 
 ### Ordinal Requirements
+
 1. EKS Auto Mode cluster with Kubernetes 1.29+
 2. Karpenter enabled (comes with Auto Mode)
 3. Three availability zones for high availability
@@ -42,6 +44,7 @@ This guide provides a comprehensive strategy for deploying long-running infrastr
 5. kubectl and AWS CLI configured
 
 ### Technical Requirements
+
 - **Scaling**: Sub-minute node provisioning (30-60 seconds)
 - **Cost**: 60-75% reduction through spot instances
 - **Availability**: 99.9% uptime for infrastructure services
@@ -59,7 +62,7 @@ kind: NodePool
 metadata:
   name: infrastructure-services
   annotations:
-    description: "Dedicated NodePool for Istio, Vault, SigNoz with spot-first strategy"
+    description: "Dedicated NodePool for Infrastructure Services with spot-first strategy"
 spec:
   # Template for node configuration
   template:
@@ -328,7 +331,7 @@ spec:
 
 ### Verify NodePool Creation
 
-```bash
+```shell
 % kubectl apply -f infrastructure-nodepool.yaml
 % kubectl get nodepool infrastructure-services -o wide
 ```
@@ -341,7 +344,7 @@ infrastructure-services   0       True    100      2000   8000Gi
 
 ### Deploy Infrastructure Services
 
-```bash
+```shell
 % kubectl apply -f istio-deployment.yaml
 % kubectl apply -f vault-deployment.yaml
 % kubectl apply -f signoz-deployment.yaml
@@ -349,7 +352,7 @@ infrastructure-services   0       True    100      2000   8000Gi
 
 ### Verify Pod Placement
 
-```bash
+```shell
 % kubectl get pods -A -o wide | grep -E "(istio|vault|signoz)"
 ```
 
@@ -362,13 +365,14 @@ signoz         clickhouse-0  1/1   Running   ip-10-x-x-x.ec2.internal   <none>  
 
 ### Check Spot vs On-Demand Distribution
 
-```bash
+```shell
 % kubectl get nodes -l workload-type=infrastructure \
   -o jsonpath='{range .items[*]}{.metadata.name} {.metadata.labels.karpenter\.sh/capacity-type}{"\n"}{end}'
 ```
 
 **Expected Results:**
-```
+
+```shell
 ip-10-0-1-123.ec2.internal spot
 ip-10-0-2-456.ec2.internal spot
 ip-10-0-3-789.ec2.internal on-demand
@@ -376,21 +380,22 @@ ip-10-0-3-789.ec2.internal on-demand
 
 ### Test Scaling Performance
 
-```bash
+```shell
 % kubectl scale deployment istiod -n istio-system --replicas=10
 % time kubectl wait --for=condition=ready pod -l app=istiod -n istio-system --timeout=300s
 ```
 
 **Expected Results:**
+
 - Scaling completes within 30-60 seconds
 - New nodes provisioned automatically
 - Pods distributed across availability zones
 
 ### Monitor Costs
 
-```bash
+```shell
 % aws ce get-cost-and-usage \
-  --time-period Start=2024-01-01,End=2024-01-31 \
+  --time-period Start=2025-01-01,End=2025-01-31 \
   --granularity DAILY \
   --metrics "UnblendedCost" \
   --filter file://spot-filter.json
@@ -398,7 +403,7 @@ ip-10-0-3-789.ec2.internal on-demand
 
 ## Cost Optimization Formula
 
-```
+```text
 Total Monthly Cost = 
   (Baseline Nodes × 730 hours × Spot Price) +
   (Burst Nodes × Active Hours × Spot Price) +
@@ -418,6 +423,7 @@ Example (10 nodes average):
 ### Why Not System NodePool?
 
 The system NodePool with `CriticalAddonsOnly` is reserved for:
+
 - CoreDNS
 - kube-proxy
 - AWS VPC CNI
@@ -435,7 +441,7 @@ Infrastructure services like Istio, Vault, and SigNoz should run on dedicated no
 
 ### Natural Workload Separation
 
-```
+```text
 ┌─────────────────┐      ┌─────────────────┐
 │ Regular Apps    │      │ Infrastructure  │
 │ (No tolerations)│      │ (Tolerations)   │
@@ -452,21 +458,25 @@ Infrastructure services like Istio, Vault, and SigNoz should run on dedicated no
 ## Production Deployment Timeline
 
 ### Week 1-2: Assessment
+
 - Review current infrastructure requirements
 - Calculate expected costs
 - Plan migration strategy
 
 ### Week 3-4: Pilot Implementation
+
 - Deploy infrastructure NodePool
 - Migrate one service (e.g., Istio)
 - Monitor performance and costs
 
 ### Week 5-6: Full Migration
+
 - Deploy remaining services
 - Configure monitoring and alerts
 - Optimize resource allocations
 
 ### Week 7-8: Optimization
+
 - Fine-tune instance types
 - Adjust scaling parameters
 - Document procedures
@@ -549,6 +559,7 @@ NodeProvisioningTime:
 ## Conclusion
 
 This architecture provides:
+
 - **55-75% cost savings** through intelligent spot usage
 - **30-60 second scaling** meeting the 1-minute requirement
 - **High availability** through multi-AZ deployment
