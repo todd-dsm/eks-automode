@@ -58,4 +58,5 @@ data "aws_acm_certificate" "environment_cert" {
   domain      = "${var.env_build}.${var.dns_zone}"
   types       = ["AMAZON_ISSUED"]
   most_recent = true
+  depends_on  = [aws_acm_certificate.environment_cert]
 }
