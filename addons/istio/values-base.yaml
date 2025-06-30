@@ -1,5 +1,6 @@
 # Istio Base Chart Values for EKS Auto Mode
-# Installs CRDs and base resources required by all Istio components
+# Installs CRDs and base resources required by all Istio components, as a result
+# DOES NOT REQUIRE TOLERATIONS OR NODE SELECTORS
 
 # Global settings
 global:
