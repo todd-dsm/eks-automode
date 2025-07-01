@@ -1,14 +1,18 @@
+# Istio CNI Plugin Configuration for EKS Auto Mode with Ambient Support
 # Istio CNI Chart Values for EKS Auto Mode Ambient
 # Based on: https://github.com/istio/istio/blob/master/manifests/charts/istio-cni/values.yaml
+# 
+# IMPORTANT: No nodeSelector or tolerations configured
+# Rationale: CNI plugins must run on ALL nodes to provide networking for any pod
+# that might be scheduled anywhere in the cluster. This is the intended design.
+# Reference: https://istio.io/latest/docs/setup/additional-setup/cni/#how-it-works
 
 # Global settings
 global:
-  
   # Image settings
   hub: docker.io/istio
   tag: 1.26.1
   variant: distroless
-  
   # Logging
   logging:
     level: "default:info"
@@ -17,6 +21,8 @@ global:
 ambient:
   # Enable ambient redirection
   enabled: true
+  # Disable IPv6 for now
+  ipv6: false
   
   # Selector for ambient-enabled pods
   enablementSelectors:
