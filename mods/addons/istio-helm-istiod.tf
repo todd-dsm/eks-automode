@@ -40,7 +40,6 @@ resource "helm_release" "istiod" {
   ]
 
   lifecycle {
-    ignore_changes  = [values]
     prevent_destroy = false
   }
 }

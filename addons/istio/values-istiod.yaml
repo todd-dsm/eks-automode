@@ -74,6 +74,28 @@ pilot:
     - effect: NoSchedule
       key: node-role.kubernetes.io/master
 
+  # Startup and liveness probes
+  startupProbe:
+    enabled: true
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 30
+    
+  livenessProbe:
+    enabled: true
+    initialDelaySeconds: 30
+    periodSeconds: 30
+    timeoutSeconds: 5
+    failureThreshold: 3
+    
+  readinessProbe:
+    enabled: true
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+
 # Telemetry v2 configuration
 telemetry:
   enabled: true
@@ -113,26 +135,3 @@ rbac:
 
 # Image pull policy
 imagePullPolicy: IfNotPresent
-
-# Startup and liveness probes
-pilot:
-  startupProbe:
-    enabled: true
-    initialDelaySeconds: 10
-    periodSeconds: 10
-    timeoutSeconds: 5
-    failureThreshold: 30
-    
-  livenessProbe:
-    enabled: true
-    initialDelaySeconds: 30
-    periodSeconds: 30
-    timeoutSeconds: 5
-    failureThreshold: 3
-    
-  readinessProbe:
-    enabled: true
-    initialDelaySeconds: 10
-    periodSeconds: 10
-    timeoutSeconds: 5
-    failureThreshold: 3
