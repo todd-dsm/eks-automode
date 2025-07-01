@@ -37,18 +37,24 @@ module "eks" {
 
 /*
   ------------------------------------------------------------------------------------------------------------------------
-  Readjustments; a palette cleanser, if you will.
-   * Container Insights Cleanup: Remove CloudWatch Agent and Fluent Bit
+  Readjustments; a palette cleanser, if you will. This module 
+    * Waits for the EKS cluster to be ready
+    * deploys dependencies for the coming infra-services
+    * and other, as yet, undetermined, processes of this nature
   ------------------------------------------------------------------------------------------------------------------------
 */
-module "removals" {
-  source     = "./mods/cleanup"
-  depends_on = [module.eks]
-}
+# module "app_prep" {
+#   source     = "./mods/prep"
+#   depends_on = [module.eks]
+# }
 
 /*
   ------------------------------------------------------------------------------------------------------------------------
-  EKS Cluster: Helm Addons (Third-Party)
+  EKS Cluster: Helm (Third-Party) Addons; all to be deployed in the infra-services NodePool
+    * Signoz
+    * Istio
+    * ArgoCD
+    * Vault, etc.
   ------------------------------------------------------------------------------------------------------------------------
 */
 # module "eks_addons" {

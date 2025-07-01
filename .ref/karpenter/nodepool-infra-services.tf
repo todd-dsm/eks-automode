@@ -96,7 +96,7 @@ resource "kubernetes_manifest" "nodepool_infra_services" {
       }
     }
   }
-
+  depends_on = [aws_iam_openid_connect_provider.eks]
   lifecycle {
     # Ignore changes to computed fields that Karpenter manages
     ignore_changes = [

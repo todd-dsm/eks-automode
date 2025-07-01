@@ -7,7 +7,6 @@
 
 # Global configuration (shared across all Istio components)
 global:
-  
   # Image configuration
   hub: docker.io/istio
   tag: 1.26.1
@@ -62,11 +61,7 @@ pilot:
   podDisruptionBudget:
     enabled: true
     minAvailable: 1
-    
-  # Node selection for EKS
-  nodeSelector:
-    kubernetes.io/os: linux
-    
+
   # Tolerations for system workloads
   tolerations:
     - key: CriticalAddonsOnly

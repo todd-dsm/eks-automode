@@ -15,6 +15,7 @@ resource "null_resource" "gateway_api_crds" {
   }
 
   depends_on = [
+    aws_eks_cluster.eks_auto,
     null_resource.kubeconfig_manager
   ]
 }

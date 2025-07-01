@@ -3,9 +3,10 @@ resource "aws_acm_certificate" "environment_cert" {
   domain_name       = "${var.env_build}.${var.dns_zone}"
   validation_method = "DNS"
 
-  #   subject_alternative_names = [
-  #     "*.${var.env_build}.${var.dns_zone}"  # For subdomains like api.stage.ptest.us
-  #   ]
+  subject_alternative_names = [
+    "signoz.${var.env_build}.${var.dns_zone}"
+    #"*.${var.env_build}.${var.dns_zone}"  # For subdomains like api.stage.ptest.us
+  ]
 
   lifecycle {
     create_before_destroy = true
