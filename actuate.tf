@@ -43,10 +43,12 @@ module "eks" {
     * and other, as yet, undetermined, processes of this nature
   ------------------------------------------------------------------------------------------------------------------------
 */
-# module "app_prep" {
-#   source     = "./mods/prep"
-#   depends_on = [module.eks]
-# }
+module "prep" {
+  source       = "./mods/prep"
+  project      = var.project
+  cluster_name = module.eks.cluster_name
+  depends_on   = [module.eks]
+}
 
 /*
   ------------------------------------------------------------------------------------------------------------------------
@@ -57,14 +59,14 @@ module "eks" {
     * Vault, etc.
   ------------------------------------------------------------------------------------------------------------------------
 */
-# module "eks_addons" {
-#   source            = "./mods/addons"
-#   project           = var.project
-#   env_build         = var.env_build
-#   dns_zone          = var.dns_zone
-#   oidc_provider_arn = module.eks.oidc_provider_arn
-#   cluster_name      = module.eks.cluster_name
-#   vpc_id            = module.network.vpc_id
-#   tags              = local.tags
-#   depends_on        = [module.removals]
-# }
+module "addons" {
+  source            = "./mods/addons"
+  project           = var.project
+  env_build         = var.env_build
+  dns_zone          = var.dns_zone
+  oidc_provider_arn = module.eks.oidc_provider_arn
+  cluster_name      = module.eks.cluster_name
+  vpc_id            = module.network.vpc_id
+  tags              = local.tags
+  depends_on        = [module.prep]
+}
