@@ -17,7 +17,7 @@ resource "aws_eks_cluster" "eks_auto" {
   bootstrap_self_managed_addons = false
   compute_config {
     enabled       = true
-    node_pools    = ["general-purpose", "infra-services"]
+    node_pools    = ["system", "general-purpose"]
     node_role_arn = aws_iam_role.auto_nodes.arn
   }
 
