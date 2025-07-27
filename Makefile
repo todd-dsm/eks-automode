@@ -1,55 +1,22 @@
 #!/usr/bin/env make
 # vim: tabstop=8 noexpandtab
 
-# Dynamically discover modules from mods directory
-MODULES := $(shell find mods -mindepth 1 -maxdepth 1 -type d | sed 's|mods/||' | sort)
-
-# Module execution order for all-mods and destroy-mods
-MODULE_ORDER := network eks prep addons
+# Module order
+MODULES := networking eks-core addons-core addons-apps karpenter
 
 # Default target when just running 'make'
 .DEFAULT_GOAL := help
 
-# Plan file variables
-PROJECT_NAME = $(shell grep project terraform.tfvars 2>/dev/null | cut -d'"' -f2 || echo "project")
-FILE_PLAN = /tmp/tf-$(PROJECT_NAME).plan
-LOG_PLAN = /tmp/tf-$(PROJECT_NAME)-plan.out
-
-# Generate terraform.tfvars for specific environment
-tfvars:
-	@if [ -z "$(filter stage prod,$(MAKECMDGOALS))" ]; then \
-		echo "Usage: make tfvars <stage|prod>"; \
-		echo ""; \
-		echo "Example:"; \
-		echo "  make tfvars stage   - Generate terraform.tfvars for staging"; \
-		echo "  make tfvars prod    - Generate terraform.tfvars for production"; \
-		exit 1; \
-	fi
-
-# Environment targets (stage/prod) - these are the actual tfvars generators
-stage prod:
-	@echo "=== Generating terraform.tfvars for $@ environment ==="
-	@if [ -f terraform.tfvars ]; then \
-		backup_name="/tmp/terraform.tfvars.bak.$$(date +%Y%m%d-%H%M%S)"; \
-		echo "⚠️  Backing up existing terraform.tfvars to $$backup_name"; \
-		mv terraform.tfvars "$$backup_name"; \
-	fi
-	@bash -c 'source build.env $@'
-	@echo "✓ Generated: terraform.tfvars"
-	@echo "✓ Environment: $@"
-	@echo ""
-	@echo "Next steps:"
-	@echo "  make init      - Initialize Terraform"
-	@echo "  make plan      - Plan all modules in order"
-	@echo "  make apply     - Apply all modules in order"
-	@echo "  make all-mods  - Full build (init + plan + apply all modules)"
+# Plan file variable (extracted from terraform.tfvars)
+FILE_PLAN = /tmp/tf-$$(grep my_project terraform.tfvars 2>/dev/null | cut -d'"' -f2 || echo "project").plan
+LOG_PLAN = /tmp/tf-$$(grep my_project terraform.tfvars 2>/dev/null | cut -d'"' -f2 || echo "project")-plan.out
 
 # Initialize Terraform
 init:
 	@echo "=== Initializing Terraform ==="
 	@if [ ! -f terraform.tfvars ]; then \
 		echo "ERROR: terraform.tfvars not found!"; \
-		echo "Run 'make tfvars <stage|prod>' first"; \
+		echo "Run 'source build.env <stage|prod>' first"; \
 		exit 1; \
 	fi
 	@terraform init -upgrade
@@ -61,172 +28,134 @@ fmt:
 	@terraform fmt -recursive
 	@echo "✓ Terraform files formatted"
 
-# Plan all modules in order
-plan: check-env init fmt all-mods-plan
-
-# Apply all modules in order
-apply: check-env init all-mods-apply
-
-# Plan all modules sequentially
-all-mods-plan: check-env fmt
-	@echo "=== Planning all modules in order ==="
-	@for module in $(MODULE_ORDER); do \
-		if [ -d "mods/$$module" ]; then \
-			echo ""; \
-			echo "📋 Planning module: $$module"; \
-			echo "────────────────────────────────"; \
-			terraform plan -target=module.$$module -out=/tmp/tf-$$module.plan || exit 1; \
-			echo "✓ Module $$module planned successfully"; \
-		else \
-			echo "⚠️  Module directory mods/$$module not found, skipping"; \
-		fi; \
-	done
+# Plan entire infrastructure (networking + eks-core only)
+plan: check-env fmt
+	@echo "=== Planning infrastructure (networking + eks-core) ==="
+	@echo "Plan file: $(FILE_PLAN)"
+	@echo "Log file: $(LOG_PLAN)"
+	@terraform plan -target=module.networking -target=module.eks-core -no-color -out=$(FILE_PLAN) 2>&1 | tee $(LOG_PLAN)
 	@echo ""
-	@echo "✅ All modules planned successfully"
-
-# Apply all modules sequentially
-all-mods-apply: check-env
-	@echo "=== Applying all modules in order ==="
-	@for module in $(MODULE_ORDER); do \
-		if [ -d "mods/$$module" ]; then \
-			if [ -f "/tmp/tf-$$module.plan" ]; then \
-				echo ""; \
-				echo "🚀 Applying module: $$module"; \
-				echo "────────────────────────────────"; \
-				terraform apply -auto-approve /tmp/tf-$$module.plan || exit 1; \
-				echo "✅ Module $$module applied successfully"; \
-			else \
-				echo "❌ Plan file not found for module $$module"; \
-				echo "Run 'make plan-$$module' or 'make all-mods-plan' first"; \
-				exit 1; \
-			fi; \
-		else \
-			echo "⚠️  Module directory mods/$$module not found, skipping"; \
-		fi; \
-	done
-	@echo ""
-	@echo "🎉 All modules applied successfully!"
-	@printf '\a'
-
-# Full build process
-all-mods: check-env init all-mods-plan all-mods-apply
+	@echo "✓ Plan saved to: $(FILE_PLAN)"
+	@echo "✓ Log saved to: $(LOG_PLAN)"
 
 # Plan specific module
-plan-%: check-env fmt
-	@if [ -d "mods/$*" ]; then \
-		echo "=== Planning module: $* ==="; \
-		terraform plan -target=module.$* -out=/tmp/tf-$*.plan; \
-		echo "✓ Module plan saved to: /tmp/tf-$*.plan"; \
-	else \
-		echo "❌ Module directory mods/$* not found"; \
-		echo "Available modules: "; \
-		find mods -mindepth 1 -maxdepth 1 -type d | sed 's|mods/||' | sort | sed 's/^/  /'; \
+%-plan: check-env fmt
+	@echo "=== Planning module: $* ==="
+	@terraform plan -target=module.$* -out=/tmp/tf-$*.plan
+	@echo "✓ Module plan saved to: /tmp/tf-$*.plan"
+
+# Apply the saved plan
+apply: check-env
+	@echo "=== Applying infrastructure ==="
+	@if [ ! -f $(FILE_PLAN) ]; then \
+		echo "ERROR: Plan file not found: $(FILE_PLAN)"; \
+		echo "Run 'make plan' first"; \
 		exit 1; \
 	fi
+	@terraform apply -auto-approve $(FILE_PLAN)
+	@echo "=== SUCCESS: Infrastructure deployed ==="
+	@printf '\a'
 
 # Apply specific module
-apply-%: check-env
-	@if [ -d "mods/$*" ]; then \
-		if [ -f "/tmp/tf-$*.plan" ]; then \
-			echo "=== Applying module: $* ==="; \
-			terraform apply -auto-approve /tmp/tf-$*.plan; \
-			echo "✅ Module $* applied successfully"; \
-		else \
-			echo "❌ Plan file not found: /tmp/tf-$*.plan"; \
-			echo "Run 'make plan-$*' first"; \
-			exit 1; \
-		fi; \
-	else \
-		echo "❌ Module directory mods/$* not found"; \
-		echo "Available modules: "; \
-		find mods -mindepth 1 -maxdepth 1 -type d | sed 's|mods/||' | sort | sed 's/^/  /'; \
+%-apply: check-env
+	@echo "=== Applying module: $* ==="
+	@if [ ! -f /tmp/tf-$*.plan ]; then \
+		echo "ERROR: Module plan file not found: /tmp/tf-$*.plan"; \
+		echo "Run 'make $*-plan' first"; \
 		exit 1; \
 	fi
+	@terraform apply -auto-approve /tmp/tf-$*.plan
+	@echo "✓ Module $* applied"
+	@printf '\a'
+
+# All-in-one command (infrastructure only)
+all: init plan apply
+	@printf '\a'
+
+# Plan individual module (standalone command)
+module-%: check-env init fmt
+	@echo "=== Planning module: $* ==="
+	@terraform plan -target=module.$* -out=/tmp/tf-$*.plan
+	@echo ""
+	@echo "Review the plan above. To apply, run:"
+	@echo "  make $*-apply"
 
 # Destroy specific module
-destroy-%: check-env
-	@if [ -d "mods/$*" ]; then \
-		echo "=== Destroying module: $* ==="; \
-		terraform destroy -auto-approve -target=module.$*; \
-		echo "✅ Module $* destroyed"; \
-	else \
-		echo "❌ Module directory mods/$* not found"; \
-		echo "Available modules: "; \
-		find mods -mindepth 1 -maxdepth 1 -type d | sed 's|mods/||' | sort | sed 's/^/  /'; \
-		exit 1; \
-	fi
+%-destroy: check-env
+	@echo "=== Destroying module: $* ==="
+	@terraform destroy -target=module.$* -auto-approve
+	@echo "✓ Module $* destroyed"
+	@printf '\a'
 
-# Destroy all modules in reverse order
-destroy-mods: check-env
-	@echo "=== Destroying all modules in reverse order ==="
-	@reversed_modules=$$(echo "$(MODULE_ORDER)" | tr ' ' '\n' | tac | tr '\n' ' '); \
-	for module in $$reversed_modules; do \
-		if [ -d "mods/$$module" ]; then \
-			echo ""; \
-			echo "🔥 Destroying module: $$module"; \
-			echo "────────────────────────────────"; \
-			terraform destroy -auto-approve -target=module.$$module || exit 1; \
-			echo "✅ Module $$module destroyed"; \
-		else \
-			echo "⚠️  Module directory mods/$$module not found, skipping"; \
-		fi; \
-	done
-	@echo ""
-	@echo "💀 All modules destroyed"
-
-# Destroy everything with confirmation (original behavior)
-destroy-all: check-env
+# Complete cleanup - destroy infrastructure AND remove local files
+clean: check-env
 	@current_env=$$(grep "^env_build" terraform.tfvars | cut -d'"' -f2); \
 	current_region=$$(grep "^region" terraform.tfvars | cut -d'"' -f2); \
 	confirm_code=$$(openssl rand -hex 3); \
 	echo ""; \
 	echo "╔═══════════════════════════════════════════════════════╗"; \
-	echo "║          ⚠️  INFRASTRUCTURE DESTRUCTION ⚠️              ║"; \
+	echo "║      ⚠️  COMPLETE CLEANUP (DESTROY + CLEAN) ⚠️         ║"; \
 	echo "╚═══════════════════════════════════════════════════════╝"; \
+	echo ""; \
+	echo "This will:"; \
+	echo "  1. Destroy ALL infrastructure in $$current_env"; \
+	echo "  2. Remove .terraform/ and .terraform.lock.hcl"; \
+	echo "  3. Remove all generated files"; \
 	echo ""; \
 	echo "Target Environment: $$current_env"; \
 	echo "Region: $$current_region"; \
 	echo ""; \
 	echo "═══════════════════════════════════════════════════════"; \
 	echo ""; \
-	echo "To confirm destroy operation, type this code: $$confirm_code"; \
+	echo "To confirm complete cleanup, type this code: $$confirm_code"; \
 	echo ""; \
 	printf "Enter confirmation code: "; \
 	read user_code; \
 	if [ "$$user_code" != "$$confirm_code" ]; then \
 		echo ""; \
-		echo "❌ Incorrect code. Destruction cancelled."; \
-		echo "✅ Infrastructure remains intact."; \
+		echo "❌ Incorrect code. Cleanup cancelled."; \
+		echo "✅ Infrastructure and files remain intact."; \
 		exit 1; \
 	fi; \
 	echo ""; \
-	echo "⚠️  Code confirmed. Starting destruction..."; \
+	echo "⚠️  Code confirmed. Starting complete cleanup..."; \
 	echo ""
+	@echo "=== PHASE 1: Destroying infrastructure ==="
 	@if [ -f scripts/janitor-pre.sh ]; then \
 		echo "Running pre-destroy cleanup..."; \
 		scripts/janitor-pre.sh; \
 	fi
 	@echo "🔥 Destroying all infrastructure..."
 	@terraform apply -destroy -auto-approve -no-color 2>&1 | \
-		tee /tmp/tf-$(PROJECT_NAME)-destroy.out
+		tee /tmp/tf-$(shell grep my_project terraform.tfvars | cut -d'"' -f2)-destroy.out
 	@if [ -f scripts/janitor-post.sh ]; then \
 		echo "Running post-destroy cleanup..."; \
 		scripts/janitor-post.sh; \
 	fi
-	@rm -rf .terraform/ .terraform.lock.hcl
+	@echo "💀 All infrastructure destroyed"
 	@echo ""
-	@echo "💀 All infrastructure has been destroyed"
-	@echo "✓ Log saved to: /tmp/tf-$(PROJECT_NAME)-destroy.out"
+	@echo "=== PHASE 2: Cleaning local files ==="
+	@echo "🧹 Removing Terraform state and generated files..."
+	@rm -f terraform.tfvars
+	@rm -f /tmp/tf-*.plan
+	@rm -f /tmp/tf-*-plan.out
+	@rm -f /tmp/terraform.tfvars.bak.*
+	@rm -f provider.tf
+	@rm -rf .terraform
+	@rm -f .terraform.lock.hcl
+	@rm -f terraform.tfstate*
+	@echo "✓ All local files cleaned"
+	@echo ""
+	@echo "🎉 COMPLETE CLEANUP FINISHED"
+	@echo "✓ Infrastructure destroyed and local files cleaned"
+	@echo "✓ Log saved to: /tmp/tf-$(shell grep my_project terraform.tfvars | cut -d'"' -f2)-destroy.out"
 	@printf '\a'
-
-# Keep original destroy target as alias to destroy-all
-destroy: destroy-all
 
 # Check environment helper
 check-env:
 	@if [ ! -f terraform.tfvars ]; then \
 		echo "ERROR: terraform.tfvars not found!"; \
-		echo "Run 'make tfvars <stage|prod>' first"; \
+		echo "Run 'source build.env <stage|prod>' first"; \
 		exit 1; \
 	fi
 
@@ -239,24 +168,17 @@ show:
 		echo ""; \
 	else \
 		echo "No terraform.tfvars found."; \
-		echo "Run: make tfvars <stage|prod>"; \
+		echo "Run: source build.env <stage|prod>"; \
 	fi
 
-# List available modules (dynamically discovered)
+# List modules
 list:
-	@echo "=== Available modules ==="
-	@if [ -n "$(MODULES)" ]; then \
-		for module in $(MODULES); do \
-			echo "  • $$module"; \
-		done; \
-	else \
-		echo "  No modules found in mods/ directory"; \
-	fi
-	@echo ""
-	@echo "=== Module execution order ==="
-	@for module in $(MODULE_ORDER); do \
-		echo "  $(shell printf '%d' $$(echo "$(MODULE_ORDER)" | tr ' ' '\n' | grep -n "$$module" | cut -d: -f1)). $$module"; \
-	done
+	@echo "=== Available modules in order ==="
+	@echo "  01. networking"
+	@echo "  02. eks-core"
+	@echo "  03. addons-core"
+	@echo "  04. addons-apps"
+	@echo "  05. karpenter"
 
 # List tfvars backups
 list-backups:
@@ -273,60 +195,51 @@ validate: init
 	@terraform fmt -check -recursive
 	@echo "✓ Configuration valid"
 
-# Utilities
-clean:
-	@echo "=== Cleaning generated files ==="
-	@rm -f terraform.tfvars
-	@rm -f /tmp/tf-*.plan
-	@rm -f /tmp/tf-*-plan.out
-	@rm -f /tmp/terraform.tfvars.bak.*
-	@rm -f provider.tf
-	@echo "✓ Cleaned"
-
-clean-all: clean
-	@echo "=== Removing Terraform files ==="
-	@rm -rf .terraform
-	@rm -f .terraform.lock.hcl
-	@rm -f terraform.tfstate*
-	@echo "✓ All Terraform files removed"
-
 # Help - Default target
 help:
 	@echo ""
-	@echo "  AWS EKS Infrastructure Build System (Staged)"
-	@echo "  ============================================="
+	@echo "  AWS EKS Infrastructure Build System"
+	@echo "  ==================================="
 	@echo ""
-	@echo "  Quick Start:"
-	@echo "    make tfvars <stage|prod> - Generate terraform.tfvars"
-	@echo "      EX: make tfvars stage  - for staging terraform.tfvars"
-	@echo "    make all-mods            - Full staged build (recommended)"
+	@echo "  Prerequisites:"
+	@echo "    source build.env <stage|prod> - Generate terraform.tfvars"
 	@echo ""
-	@echo "  Staged Operations:"
-	@echo "    make plan                - Plan all modules in order"
-	@echo "    make apply               - Apply all modules in order"
-	@echo "    make all-mods            - Init + plan + apply all modules"
-	@echo "    make destroy-mods        - Destroy all modules (reverse order)"
+	@echo "  Quick Start (Infrastructure Only):"
+	@echo "    make all                 - Build networking + eks-core"
 	@echo ""
-	@echo "  Individual Modules:"
-	@echo "    make plan-<module>       - Plan specific module"
-	@echo "    make apply-<module>      - Apply specific module"
-	@echo "    make destroy-<module>    - Destroy specific module"
+	@echo "  Two-Stage Deployment:"
+	@echo "    make all                 - Stage 1: networking + eks-core"
+	@echo "    make addons-core-plan    - Stage 2a: plan addons-core" 
+	@echo "    make addons-core-apply   - Stage 2b: apply addons-core"
+	@echo "    make addons-apps-apply   - Stage 2c: apply addons-apps"
+	@echo "    make karpenter-apply     - Stage 2d: apply karpenter"
+	@echo ""
+	@echo "  Step by Step:"
+	@echo "    make init                - Initialize Terraform"
+	@echo "    make plan                - Plan networking + eks-core"
+	@echo "    make apply               - Apply infrastructure"
 	@echo ""
 	@echo "  Environment:"
-	@echo "    make init                - Initialize Terraform"
 	@echo "    make show                - Show current environment"
-	@echo "    make list                - List available modules & order"
 	@echo "    make list-backups        - Show tfvars backup files"
+	@echo ""
+	@echo "  Individual Modules:"
+	@echo "    make list                - List available modules in deployment order"
+	@echo "    make <module>-plan       - Plan specific module"
+	@echo "    make <module>-apply      - Apply specific module"
+	@echo "    make <module>-destroy    - Destroy specific module"
+	@echo ""
+	@echo "  Cleanup:"
+	@echo "    make clean               - Destroy ALL infrastructure + clean local files"
 	@echo ""
 	@echo "  Maintenance:"
 	@echo "    make fmt                 - Format all TF files recursively"
 	@echo "    make validate            - Validate configuration"
-	@echo "    make destroy-all         - Destroy everything (requires confirmation)"
-	@echo "    make clean               - Remove generated files"
-	@echo ""
-	@echo "  Module execution order: $(MODULE_ORDER)"
 	@echo ""
 
-# Dynamic PHONY declarations - simplified approach
-.PHONY: tfvars init plan apply all-mods all-mods-plan all-mods-apply destroy destroy-all destroy-mods \
-        clean clean-all list list-backups help show validate check-env fmt stage prod
+.PHONY: all init plan apply clean list help show validate check-env fmt \
+        list-backups \
+        $(addsuffix -plan,$(MODULES)) \
+        $(addsuffix -apply,$(MODULES)) \
+        $(addsuffix -destroy,$(MODULES)) \
+        $(addprefix module-,$(MODULES))
