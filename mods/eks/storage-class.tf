@@ -30,7 +30,7 @@ resource "kubernetes_storage_class_v1" "storage_class_default" {
   allow_volume_expansion = true
 
   depends_on = [
-    null_resource.kubeconfig_manager
+    null_resource.kubeconfig_script
   ]
 }
 
