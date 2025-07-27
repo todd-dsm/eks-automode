@@ -11,11 +11,6 @@ resource "null_resource" "gateway_api_crds" {
 
   triggers = {
     gateway_api_version = "v1.3.0"
-    cluster_name        = aws_eks_cluster.eks_auto.name
+    cluster_name        = var.cluster_name
   }
-
-  depends_on = [
-    aws_eks_cluster.eks_auto,
-    null_resource.kubeconfig_manager
-  ]
 }
