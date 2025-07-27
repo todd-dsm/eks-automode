@@ -3,8 +3,8 @@
 
 # Module deployment order (infrastructure first, then addons)
 INFRA_MODULES := network eks
-ADDON_MODULES := addons-core addons-apps karpenter
-ALL_MODULES := $(INFRA_MODULES) $(ADDON_MODULES)
+ADDON_MODULES := prep addons
+MODULES_ALL := $(INFRA_MODULES) $(ADDON_MODULES)
 
 # Default target when just running 'make'
 .DEFAULT_GOAL := help
@@ -93,9 +93,9 @@ apply: check-env
 		$(FILE_PLAN)
 	@echo ""
 	@echo "🎉 SUCCESS: Infrastructure deployed!"
+	@echo ""
 	@echo "📋 Next Steps:"
 	@echo "  make addons            - Deploy all addons"
-	@echo "  make addons-core-plan  - Plan essential addons only"
 	@printf '\a'
 
 # Apply specific module
@@ -121,17 +121,13 @@ addons: check-env fmt
 	fi
 	@echo "✅ EKS cluster found, proceeding with addons..."
 	@echo ""
-	@echo "🚀 Deploying addons-core..."
-	@terraform plan -target=module.addons-core -out=/tmp/tf-addons-core.plan
-	@terraform apply -auto-approve /tmp/tf-addons-core.plan
+	@echo "🚀 Deploying prep (Gateway API CRDs)..."
+	@terraform plan -target=module.prep -out=/tmp/tf-prep.plan
+	@terraform apply -auto-approve /tmp/tf-prep.plan
 	@echo ""
-	@echo "🚀 Deploying addons-apps..."
-	@terraform plan -target=module.addons-apps -out=/tmp/tf-addons-apps.plan
-	@terraform apply -auto-approve /tmp/tf-addons-apps.plan
-	@echo ""
-	@echo "🚀 Deploying karpenter..."
-	@terraform plan -target=module.karpenter -out=/tmp/tf-karpenter.plan
-	@terraform apply -auto-approve /tmp/tf-karpenter.plan
+	@echo "🚀 Deploying addons..."
+	@terraform plan -target=module.addons -out=/tmp/tf-addons.plan
+	@terraform apply -auto-approve /tmp/tf-addons.plan
 	@echo ""
 	@echo "🎉 SUCCESS: All addons deployed!"
 	@printf '\a'
@@ -269,9 +265,8 @@ list:
 	@echo "  02. eks           - EKS cluster and core components"
 	@echo ""
 	@echo "Stage 2: Addons (requires running EKS cluster)"
-	@echo "  03. addons-core   - Essential cluster addons (LB controller, etc.)"
-	@echo "  04. addons-apps   - Application addons (Istio, ArgoCD, etc.)"
-	@echo "  05. karpenter     - Auto-scaling components"
+	@echo "  03. prep          - Gateway API CRDs"
+	@echo "  04. addons        - All cluster addons"
 	@echo ""
 	@echo "Deployment Commands:"
 	@echo "  make all          - Deploy Stage 1 (infrastructure)"
@@ -312,12 +307,10 @@ help:
 	@echo "    make apply               - Apply infrastructure"
 	@echo ""
 	@echo "  Stage 2: Individual Addon Modules"
-	@echo "    make addons-core-plan    - Plan essential addons"
-	@echo "    make addons-core-apply   - Apply essential addons"
-	@echo "    make addons-apps-plan    - Plan application addons (Istio, ArgoCD)"
-	@echo "    make addons-apps-apply   - Apply application addons"
-	@echo "    make karpenter-plan      - Plan auto-scaling"
-	@echo "    make karpenter-apply     - Apply auto-scaling"
+	@echo "    make prep-plan           - Plan Gateway API CRDs"
+	@echo "    make prep-apply          - Apply Gateway API CRDs"
+	@echo "    make addons-plan         - Plan cluster addons"
+	@echo "    make addons-apply        - Apply cluster addons"
 	@echo ""
 	@echo "  Environment:"
 	@echo "    make show                - Show current environment"
@@ -344,7 +337,4 @@ help:
 
 .PHONY: all init plan infras apply addons clean list help show validate check-env fmt \
         list-backups \
-        $(addsuffix -plan,$(ALL_MODULES)) \
-        $(addsuffix -apply,$(ALL_MODULES)) \
-        $(addsuffix -destroy,$(ALL_MODULES)) \
-        $(addprefix module-,$(ALL_MODULES))
+        $(addprefix module-,$(MODULES_ALL))
