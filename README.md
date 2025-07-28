@@ -18,7 +18,10 @@ make addons             # Stage 2: Deploy all addons (requires running cluster)
 
 The build happens in `~16` minutes.
 
+For everything else - [read the docs].
+
 <!-- docs/refs -->
 
 [Auto Mode]:https://docs.aws.amazon.com/eks/latest/userguide/automode.html
 [noteable changes]:https://github.com/todd-dsm/eks-automode/tree/main/docs
+[read the docs]:https://github.com/todd-dsm/eks-automode/tree/stages/docs
