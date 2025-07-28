@@ -61,6 +61,10 @@
 #   value = module.eks.cert_issued
 # }
 
+output "acm_certificate_arn" {
+  value = module.addons.certificate_arn
+}
+
 /*
   ------------------------------------------------------------------------------------------------------------------------
   Outputs: EKS Addons

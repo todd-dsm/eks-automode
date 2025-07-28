@@ -61,3 +61,7 @@ data "aws_acm_certificate" "environment_cert" {
   most_recent = true
   depends_on  = [aws_acm_certificate.environment_cert]
 }
+
+output "certificate_arn" {
+  value = data.aws_acm_certificate.environment_cert.arn
+}
