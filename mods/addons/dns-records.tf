@@ -19,6 +19,10 @@ resource "aws_route53_record" "environment_cname" {
   depends_on = [data.local_file.gateway_hostname]
 }
 
+output "dns_record_zone_id" {
+  value = aws_route53_record.environment_cname.zone_id
+}
+
 # Get the load balancer hostname using kubectl
 resource "null_resource" "get_gateway_hostname" {
   provisioner "local-exec" {

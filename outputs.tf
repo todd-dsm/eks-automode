@@ -65,6 +65,10 @@ output "acm_certificate_arn" {
   value = module.addons.certificate_arn
 }
 
+output "route53_zone_id" {
+  value = module.addons.dns_record_zone_id
+}
+
 /*
   ------------------------------------------------------------------------------------------------------------------------
   Outputs: EKS Addons
