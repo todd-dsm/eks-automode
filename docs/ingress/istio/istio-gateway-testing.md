@@ -180,7 +180,7 @@ gitops-demo-stage-gateway-istio-gateway-class   LoadBalancer   aaa.bbb.ccc.ddd  
 % kubectl -n istio-system describe svc -l app=istio-gateway
 
 # Get load balancer hostname
-GATEWAY_LB=$(kubectl -n istio-system get svc -l app=istio-gateway -o jsonpath='{.items[0].status.loadBalancer.ingress[0].hostname}'); echo $GATEWAY_LB"
+GATEWAY_LB=$(kubectl -n istio-system get svc -l app=istio-gateway -o jsonpath='{.items[0].status.loadBalancer.ingress[0].hostname}'); echo "$GATEWAY_LB"
 k8s-istiosys-gitopsde-959a5c9a6f-263f69aaf3630f18.elb.us-east-1.amazonaws.com
 ```
 
