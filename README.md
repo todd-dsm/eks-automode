@@ -8,15 +8,12 @@ There are some [noteable changes] with this version.
 
 ## Quick Start
 
-Pull in the build variables into the environment.
+Edit `build.env` and pull those build variables into the environment.
 
 ```shell
-source build.env stage
-
-make init
-make plan
-make apply
-make destroy
+source build.env stage  # Generate environment config
+make infras             # Stage 1: Deploy infrastructure (networking + eks-core)
+make addons             # Stage 2: Deploy all addons (requires running cluster)
 ```
 
 The build happens in `~16` minutes.
