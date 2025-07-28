@@ -269,8 +269,8 @@ list:
 	@echo "  04. addons        - All cluster addons"
 	@echo ""
 	@echo "Deployment Commands:"
-	@echo "  make all          - Deploy Stage 1 (infrastructure)"
-	@echo "  make addons       - Deploy Stage 2 (all addons)"
+	@echo "  make infras       - Deploy Stage 1 (infrastructure)"
+	@echo "  make addons       - Deploy Stage 2 (CRDs and addons)"
 
 # List tfvars backups
 list-backups:
@@ -297,7 +297,7 @@ help:
 	@echo "    source build.env <stage|prod> - Generate terraform.tfvars"
 	@echo ""
 	@echo "  Two-Stage Deployment:"
-	@echo "    make all                 - Stage 1: Infrastructure (network + eks)"
+	@echo "    make infras              - Stage 1: Infrastructure (network + eks)"
 	@echo "    make addons              - Stage 2: All addons (requires running cluster)"
 	@echo ""
 	@echo "  Stage 1: Infrastructure Only"
@@ -335,6 +335,6 @@ help:
 	@echo "    exist before addons can be planned and applied."
 	@echo ""
 
-.PHONY: all init plan infras apply addons clean list help show validate check-env fmt \
+.PHONY: all infras init plan plan-infras apply addons clean list help show validate check-env fmt \
         list-backups \
         $(addprefix module-,$(MODULES_ALL))
