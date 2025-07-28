@@ -282,7 +282,7 @@ list-backups:
 	fi
 
 # Validate configuration
-validate: init
+validate:
 	@terraform validate
 	@terraform fmt -check -recursive
 	@echo "✓ Configuration valid"
